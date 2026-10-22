@@ -97,9 +97,15 @@ navegadores no permiten `getUserMedia` desde una IP HTTP). Puedes usar un túnel
 cloudflared tunnel --url http://localhost:3001
 ```
 
-y poner la URL del túnel en `PUBLIC_URL`. Si quieres voz móvil, configura también
-`LIVEKIT_PUBLIC_URL` con la URL pública de LiveKit. Sin HTTPS, **el chat de texto sigue
-funcionando**.
+Si la red bloquea Cloudflare (habitual en algunas redes universitarias), usa localhost.run:
+
+```bash
+ssh -R 80:127.0.0.1:3001 nokey@localhost.run
+```
+
+Pon la URL `https://…lhr.life` que imprime en `PUBLIC_URL` y reinicia el servidor. Si quieres
+voz móvil, configura también `LIVEKIT_PUBLIC_URL` con una URL pública de LiveKit (por
+ejemplo LiveKit Cloud). Sin LiveKit público, **el chat de texto sigue funcionando**.
 
 Abre los puertos `3001`, `5173` y `7880` en el firewall si el móvil no carga el QR o no
 conecta el audio.
