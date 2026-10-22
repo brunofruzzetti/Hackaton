@@ -2,6 +2,18 @@ import { z } from "zod";
 
 export const RUINA_MIN_PLAYERS = 5;
 export const RUINA_MAX_PLAYERS = 8;
+export const RUINA_MAX_AI = 4;
+
+export const RUINA_AI_NAMES = [
+  "Manoli",
+  "Paco",
+  "Carmen",
+  "Antonio",
+  "Paqui",
+  "Fermín",
+  "Rosario",
+  "Nicolás",
+] as const;
 
 export const RUINA_FLOORS = [
   "Bajo",
@@ -39,6 +51,7 @@ export interface RuinaPlayerPublic {
   nombre: string;
   piso: RuinaFloor;
   isHost: boolean;
+  isAi: boolean;
   connected: boolean;
 }
 
@@ -301,6 +314,8 @@ export const ruinaClientMessageSchema = z.discriminatedUnion("type", [
     token: z.string().min(1).max(128).optional(),
   }),
   z.object({ type: z.literal("start_game") }),
+  z.object({ type: z.literal("add_ai") }),
+  z.object({ type: z.literal("remove_ai"), playerId: z.string().min(1).max(64) }),
   z.object({ type: z.literal("force_advance") }),
   z.object({ type: z.literal("nominate"), vocalId: z.string().min(1).max(64) }),
   z.object({ type: z.literal("vote_commission"), approve: z.boolean() }),

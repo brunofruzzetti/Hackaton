@@ -8,6 +8,8 @@ sin que se note.
 ## Reglas
 
 - **5–8 jugadores** por sala, sin registro: código de 4 letras + nombre.
+- **Modo prueba con IAs**: el anfitrión puede añadir hasta **4 vecinos IA** en el lobby. Ocupan
+  asiento, reciben bando/secreto y juegan solas nominación, votación y firma.
 - **Bandos secretos**:
   - 5–7 jugadores: 2 deshonestos.
   - 8 jugadores: 3 deshonestos.
@@ -43,6 +45,8 @@ sin que se note.
   en memoria. Fases, timers, votos, firmas y puntuaciones viven en el servidor.
 - **Cliente**: React + Vite + TypeScript + **Tailwind CSS v4**.
 - **Voz**: LiveKit (`livekit-server-sdk` para tokens y `livekit-client` en el navegador).
+  El micro se activa con un botón explícito **ENTRAR EN LA VOZ** para respetar los permisos
+  de navegador/móvil. El chat de texto siempre está disponible.
 - **Supabase Realtime (opcional)**: espejo de `salas` y `jugadores` para suscripciones en
   vivo. El WebSocket sigue siendo la autoridad; si Supabase falla, la partida continúa.
 
@@ -107,6 +111,7 @@ Sin credenciales, la UI muestra `WS local` y todo funciona igual.
   src/components/JuntaHeader.tsx     Marcador Bo3, llave del portal, fase y rechazos
   src/components/PlayerCredential.tsx Credencial privada + post-it del expediente
   src/components/NeighborBoard.tsx   Tablero de buzones/puertas de la asamblea
+  src/components/PortalScene.tsx     Portal 2D: sillas + mesa frontal presidente/vocal
   src/components/ContractFolder.tsx  Carpeta azul del contrato de obra
   src/components/PlayerDashboard.tsx Compone header, credencial, contrato y tablero
   src/components/VotingPanel.tsx     Nominación, votación pública y firma secreta
@@ -123,7 +128,8 @@ La interfaz sigue un estilo **tablón de anuncios de comunidad + neobrutalismo**
 fondo papel `#f4efe6`, bordes negros de 2–4 px, sombras sólidas sin difuminar,
 post-its amarillos, sellos verdes/rojos, carpetas azules y tipografía monoespaciada en
 actas. Los botones usan `active:translate-*` y `active:shadow-none` para dar respuesta
-táctil. Probado a 390 px sin scroll horizontal.
+táctil. El **PortalScene** muestra a los vecinos sentados; en cuanto hay presidente y vocal,
+ambos pasan a la mesa frontal. Probado a 390 px sin scroll horizontal.
 
 ### Función pura de arranque
 
@@ -157,8 +163,8 @@ npm run build
 ```
 
 Cubren reparto de pisos/bandos, secretos circulares, ocultación de equipos en el estado
-público, nominación, votos públicos, rechazos, sabotaje, timeout, victoria Bo3 y tokens de
-LiveKit.
+público, nominación, votos públicos, rechazos, sabotaje, timeout, victoria Bo3, IAs de
+prueba (añadir/quitar, voto, firma y presidencia automática) y tokens de LiveKit.
 
 ## Prueba manual rápida
 

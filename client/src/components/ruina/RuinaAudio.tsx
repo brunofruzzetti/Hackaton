@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { RuinaConnectionStatus } from "../../hooks/useRuinaSocket";
 import { useLiveKit } from "../../hooks/useLiveKit";
 import type { Session } from "../../lib/session";
@@ -9,20 +10,33 @@ interface RuinaAudioProps {
 }
 
 const LABEL: Record<string, string> = {
-  idle: "SIN AUDIO",
+  idle: "MIC APAGADO",
   connecting: "CONECTANDO…",
-  connected: "AUDIO OK",
-  error: "ERROR DE AUDIO",
-  disabled: "AUDIO NO CONFIGURADO",
+  connected: "VOZ EN VIVO",
+  error: "ERROR DE VOZ",
+  disabled: "VOZ NO CONFIGURADA",
 };
 
 export function RuinaAudio({ session, status }: RuinaAudioProps) {
+  // El micro solo se pide tras un gesto explícito del usuario. Esto evita
+  // bloqueos de autoplay/permisos en móvil y deja claro que hay voz activa.
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const audio = useLiveKit({
     session,
-    enabled: status === "connected",
+    enabled: status === "connected" && voiceEnabled,
     onSpeakingChange: () => undefined,
     silencedUntil: null,
   });
+
+  const micReady = audio.status === "connected" && audio.localTrack !== null;
+
+  function joinVoice(): void {
+    setVoiceEnabled(true);
+  }
+
+  function leaveVoice(): void {
+    setVoiceEnabled(false);
+  }
 
   return (
     <section className={`${BRUTAL.card} overflow-hidden`}>
@@ -44,50 +58,99 @@ export function RuinaAudio({ session, status }: RuinaAudioProps) {
       </div>
 
       <div className="p-2.5">
-        {audio.status === "disabled" && (
-          <p className="border-2 border-dashed border-black bg-[#fef08a] px-2 py-1.5 font-mono text-[10px] leading-relaxed">
-            LiveKit no está configurado. El chat sigue funcionando.
-          </p>
-        )}
-        {audio.status === "error" && (
+        {!voiceEnabled ? (
           <div className="space-y-2">
-            <p className="border-2 border-black bg-red-100 px-2 py-1.5 font-mono text-[10px] leading-relaxed text-red-900">
-              {audio.error}
+            <p className="border-2 border-dashed border-black bg-[#fef08a] px-2 py-1.5 font-mono text-[10px] leading-relaxed">
+              Micro y voz en vivo por LiveKit. Pulsa el botón: el navegador te pedirá permiso de
+              micrófono.
             </p>
             <button
               type="button"
-              onClick={audio.retry}
-              className={`${BRUTAL.buttonSm} bg-white px-2 py-1.5 font-mono text-[10px] font-black uppercase`}
+              onClick={joinVoice}
+              disabled={status !== "connected"}
+              className={`${BRUTAL.button} w-full bg-[#22c55e] px-3 py-3 font-black uppercase text-white`}
             >
-              REINTENTAR AUDIO
+              🎙 ENTRAR EN LA VOZ
             </button>
+            <p className="text-center font-mono text-[9px] uppercase text-stone-500">
+              Si prefieres no hablar, el chat de texto sigue abierto.
+            </p>
           </div>
-        )}
-        {audio.status === "connected" && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void audio.toggleMute()}
-              disabled={!audio.localTrack}
-              className={`${BRUTAL.buttonSm} px-2.5 py-2 font-mono text-[10px] font-black uppercase text-white ${
-                audio.muted ? "bg-[#ef4444]" : "bg-black"
-              }`}
-            >
-              {audio.muted ? "ACTIVAR MICRÓFONO" : "SILENCIAR MICRÓFONO"}
-            </button>
-            {!audio.canPlaybackAudio && (
+        ) : (
+          <>
+            {audio.status === "connecting" && (
+              <p className="border-2 border-dashed border-black bg-white px-2 py-1.5 text-center font-mono text-[10px] font-bold uppercase">
+                Conectando micro…
+              </p>
+            )}
+            {audio.status === "disabled" && (
+              <p className="border-2 border-dashed border-black bg-[#fef08a] px-2 py-1.5 font-mono text-[10px] leading-relaxed">
+                El servidor no tiene LiveKit configurado. Usa el chat de texto.
+              </p>
+            )}
+            {audio.error && (
+              <p className="border-2 border-black bg-red-100 px-2 py-1.5 font-mono text-[10px] leading-relaxed text-red-900">
+                {audio.error}
+              </p>
+            )}
+            {audio.status === "connected" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 border-2 border-black bg-[#f4efe6] px-2 py-1.5">
+                  <span className="font-mono text-[10px] font-black uppercase">
+                    {!micReady ? "🎙 MIC NO DISPONIBLE" : audio.muted ? "🔇 MIC CERRADO" : "🎙 MIC ABIERTO"}
+                  </span>
+                  <span className="font-mono text-[9px] font-bold uppercase text-stone-500">
+                    {audio.speakingIds.length > 0
+                      ? `${audio.speakingIds.length} HABLANDO`
+                      : "SIN VOZ AHORA"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => void audio.toggleMute()}
+                    disabled={!micReady}
+                    className={`${BRUTAL.buttonSm} min-h-[44px] px-2 py-2 font-mono text-[10px] font-black uppercase text-white ${
+                      audio.muted ? "bg-[#ef4444]" : "bg-black"
+                    }`}
+                  >
+                    {audio.muted ? "ABRIR MIC" : "CERRAR MIC"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={leaveVoice}
+                    className={`${BRUTAL.buttonSm} min-h-[44px] bg-white px-2 py-2 font-mono text-[10px] font-black uppercase`}
+                  >
+                    SALIR DE VOZ
+                  </button>
+                </div>
+                {!micReady && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVoiceEnabled(false);
+                      window.setTimeout(() => setVoiceEnabled(true), 50);
+                    }}
+                    className={`${BRUTAL.buttonSm} w-full bg-[#fef08a] px-2 py-2 font-mono text-[10px] font-black uppercase`}
+                  >
+                    REINTENTAR PERMISO DE MICRÓFONO
+                  </button>
+                )}
+              </div>
+            )}
+            {audio.status === "error" && (
               <button
                 type="button"
-                onClick={() => void audio.enablePlayback()}
-                className={`${BRUTAL.buttonSm} bg-[#fef08a] px-2.5 py-2 font-mono text-[10px] font-black uppercase`}
+                onClick={audio.retry}
+                className={`${BRUTAL.buttonSm} mt-2 w-full bg-[#fef08a] px-2 py-2 font-mono text-[10px] font-black uppercase`}
               >
-                ACTIVAR SONIDO
+                REINTENTAR VOZ
               </button>
             )}
-          </div>
+          </>
         )}
         <p className="mt-2 font-mono text-[9px] leading-relaxed text-stone-500">
-          Voz por LiveKit. El chat de abajo es el acta de respaldo.
+          La voz es LiveKit; el chat de abajo es el acta de respaldo.
         </p>
       </div>
     </section>

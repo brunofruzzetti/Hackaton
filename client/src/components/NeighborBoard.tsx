@@ -77,6 +77,11 @@ export function NeighborBoard({ room, you }: NeighborBoardProps) {
                       ANFITRIÓN
                     </span>
                   )}
+                  {player.isAi && (
+                    <span className="border border-black bg-[#38bdf8] px-1 py-0.5 font-mono text-[8px] font-bold">
+                      🤖 IA
+                    </span>
+                  )}
                   {hasVoted && (
                     <span className="border border-black bg-[#22c55e] px-1 py-0.5 font-mono text-[8px] font-bold text-white">
                       YA VOTÓ

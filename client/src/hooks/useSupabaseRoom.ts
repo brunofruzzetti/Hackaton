@@ -69,7 +69,7 @@ export function useSupabaseRoom(code: string | null): SupabaseRoomSnapshot {
         const playersResponse = await supabase
           .from("jugadores")
           // Solo columnas públicas. Nunca seleccionar equipos/secretos aquí.
-          .select("id,sala_id,nombre,piso,es_anfitrion,conectado")
+          .select("id,sala_id,nombre,piso,es_anfitrion,es_ia,conectado")
           .eq("sala_id", salaRow.id);
         if (cancelled) return;
         if (playersResponse.error) {

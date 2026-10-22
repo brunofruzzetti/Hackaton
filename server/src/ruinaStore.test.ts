@@ -97,6 +97,73 @@ describe("Junta de Ruina · lobby y reparto", () => {
   });
 });
 
+describe("Junta de Ruina · IAs de prueba", () => {
+  function withAis(count = 4) {
+    const store = new RuinaStore();
+    const host = store.createRoom("Humano");
+    const code = host.room.code;
+    for (let index = 0; index < count; index += 1) {
+      store.addAi(code, host.player.id);
+    }
+    return { store, code, host, room: host.room };
+  }
+
+  it("el anfitrión puede añadir y quitar hasta 4 IAs en el lobby", () => {
+    const { store, code, host, room } = withAis(4);
+    expect(room.players.filter((player) => player.isAi)).toHaveLength(4);
+    expect(room.players).toHaveLength(5);
+    expect(store.getPublicState(room).players.filter((player) => player.isAi)).toHaveLength(4);
+    expect(() => store.addAi(code, host.player.id)).toThrow(/Máximo 4 IAs/i);
+    const ai = room.players.find((player) => player.isAi)!;
+    store.removeAi(code, host.player.id, ai.id);
+    expect(room.players.filter((player) => player.isAi)).toHaveLength(3);
+    store.addAi(code, host.player.id);
+    expect(room.players.filter((player) => player.isAi)).toHaveLength(4);
+  });
+
+  it("solo el anfitrión puede añadir IAs y no se pueden añadir con la partida empezada", () => {
+    const store = new RuinaStore();
+    const host = store.createRoom("Humano");
+    const code = host.room.code;
+    const other = store.joinRoom({ code, nombre: "Otro" }).player;
+    expect(() => store.addAi(code, other.id)).toThrow(/anfitrión/i);
+    for (let index = 0; index < 4; index += 1) store.addAi(code, host.player.id);
+    store.startGame(code, host.player.id);
+    expect(() => store.addAi(code, host.player.id)).toThrow(/lobby/i);
+  });
+
+  it("las IAs votan y firman automáticamente", () => {
+    const { store, code, room } = withAis(4);
+    store.startGame(code, room.players[0]!.id);
+    const pres = president(room);
+    const aiVocal = room.players.find((player) => player.isAi)!;
+    store.nominate(code, pres.id, aiVocal.id);
+    store.voteCommission(code, pres.id, true);
+    store.tick();
+    expect(room.votes.size).toBe(5);
+    if (room.phase === "FIRMA_CONTRATO") {
+      store.tick();
+      expect(room.signatures.has(aiVocal.id)).toBe(true);
+    }
+  });
+
+  it("si la presidencia cae en una IA, nomina sola", () => {
+    const { store, code, room } = withAis(4);
+    store.startGame(code, room.players[0]!.id);
+    const firstPresident = president(room);
+    const vocal = room.players.find((player) => player.id !== firstPresident.id)!;
+    store.nominate(code, firstPresident.id, vocal.id);
+    for (const player of room.players) {
+      store.voteCommission(code, player.id, false);
+    }
+    expect(room.phase).toBe("NOMINACION");
+    expect(president(room).isAi).toBe(true);
+    store.tick();
+    expect(room.phase).toBe("VOTACION_COMISION");
+    expect(room.vocalId).not.toBeNull();
+  });
+});
+
 describe("Junta de Ruina · fases", () => {
   it("el presidente nomina y la comisión se aprueba con mayoría", () => {
     const { store, code, room } = setup(5, 7);

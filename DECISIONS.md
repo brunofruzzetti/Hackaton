@@ -361,3 +361,16 @@ sellos verdes/rojos, carpetas azules y tipografía monoespaciada para actas. Se 
 `JuntaHeader`, `PlayerCredential`, `NeighborBoard` y `ContractFolder` para modularizar el
 dashboard. Los botones usan desplazamiento y sombra en `:active`; la credencial es plegable
 en móvil. Probado a 390 px sin overflow horizontal.
+
+### D-112 · IAs de prueba
+El anfitrión puede añadir hasta 4 IAs en el lobby (`add_ai`/`remove_ai`). Ocupan asiento,
+entran en el reparto de bandos/secretos y actúan en servidor una vez por tick: nominan si
+tienen la presidencia, votan con probabilidad según bando y firman (sabotaje probabilístico
+si son deshonestas). No tienen socket ni chat; el estado público las marca con `isAi`.
+
+### D-113 · Escena del portal y voz explícita
+Se añade `PortalScene`: portal 2D con sillas para los vecinos y mesa frontal. El presidente
+siempre aparece en la mesa; cuando hay vocal, este se sienta a su lado y la comisión queda
+destacada. El micro no se solicita automáticamente: `RuinaAudio` muestra `ENTRAR EN LA VOZ`
+y solo entonces pide permiso/publica el track de LiveKit. El chat de texto sigue disponible
+en todo momento.

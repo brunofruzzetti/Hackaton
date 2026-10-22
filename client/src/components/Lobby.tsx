@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
-import type { RuinaState } from "@shared/index";
+import { RUINA_MAX_AI, type RuinaState } from "@shared/index";
 import type { RuinaSelf, RuinaSocket } from "../hooks/useRuinaSocket";
 import type { Session } from "../lib/session";
 import { BRUTAL } from "../lib/ui";
-import { NeighborBoard } from "./NeighborBoard";
+import { PortalScene } from "./PortalScene";
 import { RuinaAudio } from "./ruina/RuinaAudio";
 import { RuinaChat } from "./ruina/RuinaChat";
 
@@ -161,7 +161,8 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
               </form>
 
               <p className="mt-3 font-mono text-[10px] leading-relaxed text-stone-500">
-                Mínimo 5, máximo 8. La voz va por LiveKit; el chat siempre está disponible.
+                Mínimo 5, máximo 8. La voz va por LiveKit; el chat siempre está disponible. El
+                anfitrión puede añadir hasta 4 IAs para probar la partida.
               </p>
             </section>
 
@@ -214,6 +215,8 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
 
   const isHost = you.isHost;
   const canStart = room.players.length >= 5 && room.players.length <= 8;
+  const aiPlayers = room.players.filter((player) => player.isAi);
+  const canAddAi = isHost && aiPlayers.length < RUINA_MAX_AI && room.players.length < 8;
   const shareLink = `${window.location.origin}/sala/${room.code}`;
 
   async function copy(): Promise<void> {
@@ -269,8 +272,59 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
         </section>
 
         <div className="mb-4">
-          <NeighborBoard room={room} you={you} />
+          <PortalScene room={room} you={you} />
         </div>
+
+        <section className={`${BRUTAL.card} mb-4 p-3`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className={`${BRUTAL.label} text-stone-500`}>MODO PRUEBA</p>
+              <h2 className="text-lg font-black uppercase leading-none tracking-tight">
+                Vecinos IA ({aiPlayers.length}/{RUINA_MAX_AI})
+              </h2>
+            </div>
+            {isHost ? (
+              <button
+                type="button"
+                disabled={!canAddAi}
+                onClick={socket.addAi}
+                className={`${BRUTAL.buttonSm} bg-[#fef08a] px-3 py-2 font-mono text-[10px] font-black uppercase`}
+              >
+                ➕ Añadir IA
+              </button>
+            ) : (
+              <span className="font-mono text-[9px] font-bold uppercase text-stone-500">
+                Solo el anfitrión añade IAs
+              </span>
+            )}
+          </div>
+          <p className="mt-1 font-mono text-[10px] leading-relaxed text-stone-500">
+            Las IAs ocupan asiento, reciben bando y secreto, y juegan solas nominación, votación
+            y firma. Perfectas para probar la demo sin 5 pestañas.
+          </p>
+          {aiPlayers.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {aiPlayers.map((ai) => (
+                <span
+                  key={ai.id}
+                  className="inline-flex items-center gap-1 border-2 border-black bg-[#38bdf8] px-2 py-1 font-mono text-[10px] font-black uppercase shadow-[2px_2px_0_0_#000]"
+                >
+                  🤖 {ai.nombre} · {ai.piso}
+                  {isHost && (
+                    <button
+                      type="button"
+                      onClick={() => socket.removeAi(ai.id)}
+                      className="ml-1 border border-black bg-white px-1 font-black leading-none text-red-700 transition-all active:translate-y-[1px]"
+                      aria-label={`Quitar ${ai.nombre}`}
+                    >
+                      ×
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className={`${BRUTAL.cardLg} p-3`}>
           <div className="flex items-center justify-between gap-2">

@@ -4,6 +4,7 @@ import { ContractFolder } from "./ContractFolder";
 import { JuntaHeader } from "./JuntaHeader";
 import { NeighborBoard } from "./NeighborBoard";
 import { PlayerCredential } from "./PlayerCredential";
+import { PortalScene } from "./PortalScene";
 
 interface PlayerDashboardProps {
   room: RuinaState;
@@ -21,6 +22,8 @@ export function PlayerDashboard({
   return (
     <div className="space-y-4">
       <JuntaHeader room={room} supabaseRealtime={supabaseRealtime} />
+
+      <PortalScene room={room} you={you} />
 
       <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
         <PlayerCredential room={room} you={you} privateInfo={privateInfo} />

@@ -19,7 +19,7 @@ describe("Supabase · separación público/privado", () => {
     const rows = buildPublicPlayerRows(room, "sala-1");
     expect(rows).toHaveLength(5);
     expect(Object.keys(rows[0]!).sort()).toEqual(
-      ["conectado", "es_anfitrion", "id", "nombre", "piso", "sala_id"].sort(),
+      ["conectado", "es_anfitrion", "es_ia", "id", "nombre", "piso", "sala_id"].sort(),
     );
     const serialized = JSON.stringify(rows);
     expect(serialized).not.toContain("DESHONESTOS");

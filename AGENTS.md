@@ -41,6 +41,8 @@ fueron eliminados.
 - `client/src/components/JuntaHeader.tsx`: sellos Bo3, llave del portal, fase y calaveras.
 - `client/src/components/PlayerCredential.tsx`: credencial privada plegable y post-it.
 - `client/src/components/NeighborBoard.tsx`: tablero de buzones 2/4 columnas.
+- `client/src/components/PortalScene.tsx`: portal 2D con sillas y mesa frontal; el presidente
+  y el vocal se sientan delante.
 - `client/src/components/ContractFolder.tsx`: carpeta azul del contrato de obra.
 - `client/src/components/PlayerDashboard.tsx`: compone header, credencial, contrato y tablero.
 - `client/src/components/VotingPanel.tsx`: nominación, votación pública y firma secreta.
@@ -54,6 +56,9 @@ fueron eliminados.
 ## Reglas de juego que no se pueden romper
 
 - 5–8 jugadores; mínimo 5 para empezar; máximo 8.
+- **IAs de prueba**: máximo 4 por sala, solo el anfitrión las añade/quita en `LOBBY`. Ocupan
+  asiento, reciben bando/secreto y actúan solas: nominan si son presidentas, votan y firman
+  (sabotaje probabilístico si son deshonestas). Se procesan una acción por tick en servidor.
 - Bandos: 5–7 jugadores ⇒ 2 deshonestos; 8 ⇒ 3 deshonestos.
 - Pisos únicos del array `RUINA_FLOORS`; el anillo de secretos es el orden de jugadores.
 - Cada jugador recibe un expediente sobre el jugador **siguiente** del array:
@@ -94,6 +99,8 @@ fueron eliminados.
   avisa al cliente.
 - Sonidos con Web Audio API en `client/src/lib/sfx.ts` y `useGameSounds`; sin assets
   externos. Mantener un toggle de silencio.
+- Voz: el micro solo se pide tras pulsar `ENTRAR EN LA VOZ`; el chat de texto es siempre el
+  respaldo. La escena del portal muestra las sillas y la mesa frontal presidente/vocal.
 - Mobile-first: 390 px primero, botones grandes, Tailwind, sin hover como única affordance.
 - Estilo visual: tablón de vecinos + neobrutalismo (papel `#f4efe6`, bordes negros, sombras
   sólidas, post-its, sellos y carpetas), centralizado en `client/src/lib/ui.ts` y

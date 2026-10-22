@@ -46,6 +46,7 @@ create table if not exists public.jugadores (
   nombre text not null check (char_length(nombre) between 2 and 20),
   piso text not null,
   es_anfitrion boolean not null default false,
+  es_ia boolean not null default false,
   conectado boolean not null default true,
   creado_en timestamptz not null default now(),
   actualizado_en timestamptz not null default now(),
@@ -57,6 +58,7 @@ create table if not exists public.jugadores (
 -- en una tabla que lea `anon`.
 alter table public.jugadores drop column if exists es_deshonesto;
 alter table public.jugadores drop column if exists informacion_privada;
+alter table public.jugadores add column if not exists es_ia boolean not null default false;
 
 -- Información privada: solo service_role. No hay políticas RLS para anon.
 create table if not exists public.expedientes (

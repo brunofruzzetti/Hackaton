@@ -12,6 +12,7 @@ export interface PublicPlayerRow {
   nombre: string;
   piso: string;
   es_anfitrion: boolean;
+  es_ia: boolean;
   conectado: boolean;
 }
 
@@ -31,6 +32,7 @@ export function buildPublicPlayerRows(room: Room, salaId: string): PublicPlayerR
     nombre: player.nombre,
     piso: player.piso,
     es_anfitrion: player.isHost,
+    es_ia: player.isAi,
     conectado: player.connected,
   }));
 }

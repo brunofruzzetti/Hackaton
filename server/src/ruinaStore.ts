@@ -1,7 +1,9 @@
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import {
+  RUINA_AI_NAMES,
   RUINA_CONTRACTS,
   RUINA_FLOORS,
+  RUINA_MAX_AI,
   RUINA_MAX_PLAYERS,
   RUINA_MIN_PLAYERS,
   iniciarPartida,
@@ -32,6 +34,7 @@ export interface RoomPlayer {
   piso: RuinaFloor;
   team: RuinaTeam | null;
   isHost: boolean;
+  isAi: boolean;
   token: string;
   connected: boolean;
   joinedAt: number;
@@ -113,6 +116,7 @@ export class RuinaStore {
       piso: RUINA_FLOORS[0] ?? "Bajo",
       team: null,
       isHost: true,
+      isAi: false,
       token: token(),
       connected: true,
       joinedAt: now,
@@ -193,6 +197,7 @@ export class RuinaStore {
       piso: nextFloor(room.players),
       team: null,
       isHost: false,
+      isAi: false,
       token: token(),
       connected: true,
       joinedAt: Date.now(),
@@ -201,6 +206,63 @@ export class RuinaStore {
     room.lastActivityAt = Date.now();
     console.log(`[ruina] ${player.nombre} entró en ${room.code} (${player.piso})`);
     return { room, player, token: player.token, reconnected: false };
+  }
+
+  addAi(code: string, requesterId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const requester = this.requirePlayer(room, requesterId);
+    if (!requester.isHost) {
+      throw new GameError("NOT_HOST", "Solo el anfitrión puede añadir IAs.");
+    }
+    if (room.phase !== "LOBBY") {
+      throw new GameError("GAME_STARTED", "Solo se pueden añadir IAs en el lobby.");
+    }
+    if (room.players.length >= RUINA_MAX_PLAYERS) {
+      throw new GameError("ROOM_FULL", `La sala está llena (máximo ${RUINA_MAX_PLAYERS}).`);
+    }
+    const aiCount = room.players.filter((player) => player.isAi).length;
+    if (aiCount >= RUINA_MAX_AI) {
+      throw new GameError("INVALID_COMPOSITION", `Máximo ${RUINA_MAX_AI} IAs por sala.`);
+    }
+
+    const usedNames = new Set(room.players.map((player) => normalizeName(player.nombre)));
+    const name =
+      RUINA_AI_NAMES.find((candidate) => !usedNames.has(normalizeName(candidate))) ??
+      `IA ${aiCount + 1}`;
+    const ai: RoomPlayer = {
+      id: randomUUID(),
+      nombre: name,
+      piso: nextFloor(room.players),
+      team: null,
+      isHost: false,
+      isAi: true,
+      token: token(),
+      connected: true,
+      joinedAt: Date.now(),
+    };
+    room.players.push(ai);
+    room.lastActivityAt = Date.now();
+    console.log(`[ruina] ${name} (IA) se sentó en ${room.code} (${ai.piso})`);
+    return room;
+  }
+
+  removeAi(code: string, requesterId: string, playerId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const requester = this.requirePlayer(room, requesterId);
+    if (!requester.isHost) {
+      throw new GameError("NOT_HOST", "Solo el anfitrión puede quitar IAs.");
+    }
+    if (room.phase !== "LOBBY") {
+      throw new GameError("GAME_STARTED", "Solo se pueden quitar IAs en el lobby.");
+    }
+    const ai = room.players.find((player) => player.id === playerId);
+    if (!ai || !ai.isAi) {
+      throw new GameError("INVALID_COMPOSITION", "Ese asiento no es una IA.");
+    }
+    room.players = room.players.filter((player) => player.id !== playerId);
+    room.lastActivityAt = Date.now();
+    console.log(`[ruina] ${ai.nombre} (IA) se marchó de ${room.code}`);
+    return room;
   }
 
   startGame(code: string, requesterId: string, rng: () => number = Math.random): Room {
@@ -439,6 +501,10 @@ export class RuinaStore {
       if (room.phase === "RESOLUCION_RONDA" && room.phaseEndsAt !== null && now >= room.phaseEndsAt) {
         this.advanceRound(room);
         changed.push(room.code);
+        continue;
+      }
+      if (this.runAiActions(room)) {
+        changed.push(room.code);
       }
     }
     return changed;
@@ -458,6 +524,7 @@ export class RuinaStore {
         nombre: player.nombre,
         piso: player.piso,
         isHost: player.isHost,
+        isAi: player.isAi,
         connected: player.connected,
       })),
       contract: room.contract,
@@ -513,8 +580,10 @@ export class RuinaStore {
   cleanupStaleRooms(now = Date.now()): number {
     let removed = 0;
     for (const [code, room] of this.rooms) {
-      const hasConnected = room.players.some((player) => player.connected);
-      if (!hasConnected && now - room.lastActivityAt > 2 * 60 * 60 * 1000) {
+      const hasConnectedHuman = room.players.some(
+        (player) => player.connected && !player.isAi,
+      );
+      if (!hasConnectedHuman && now - room.lastActivityAt > 2 * 60 * 60 * 1000) {
         this.rooms.delete(code);
         removed += 1;
       }
@@ -556,6 +625,53 @@ export class RuinaStore {
     console.log(
       `[ruina] ${room.code}: nominación automática de ${vocal.nombre} (presidente ${president.nombre} no nominó)`,
     );
+  }
+
+  /**
+   * Las IAs juegan una acción por tick. Así la UI tiene tiempo de pintar el
+   * cambio de fase y el humano sigue viendo lo que ocurre.
+   */
+  private runAiActions(room: Room): boolean {
+    if (room.phase === "NOMINACION") {
+      const president = this.president(room);
+      if (!president?.isAi) return false;
+      const candidates = room.players.filter((player) => player.id !== president.id);
+      if (candidates.length === 0) return false;
+      const vocal = candidates[randomInt(0, candidates.length)]!;
+      this.nominate(room.code, president.id, vocal.id);
+      return true;
+    }
+
+    if (room.phase === "VOTACION_COMISION") {
+      const ais = room.players.filter(
+        (player) => player.isAi && !room.votes.has(player.id),
+      );
+      if (ais.length === 0) return false;
+      for (const ai of ais) {
+        if (room.phase !== "VOTACION_COMISION") break;
+        const approveChance = ai.team === "DESHONESTOS" ? 0.68 : 0.55;
+        this.voteCommission(room.code, ai.id, Math.random() < approveChance);
+      }
+      return true;
+    }
+
+    if (room.phase === "FIRMA_CONTRATO") {
+      const president = this.president(room);
+      const vocal = room.players.find((player) => player.id === room.vocalId);
+      const commission = [president, vocal].filter(
+        (player): player is RoomPlayer =>
+          Boolean(player?.isAi && !room.signatures.has(player.id)),
+      );
+      if (commission.length === 0) return false;
+      for (const ai of commission) {
+        if (room.phase !== "FIRMA_CONTRATO") break;
+        const sabotage = ai.team === "DESHONESTOS" && Math.random() < 0.55;
+        this.signContract(room.code, ai.id, sabotage ? "SABOTAJE" : "LIMPIO");
+      }
+      return true;
+    }
+
+    return false;
   }
 
   private resolveCommission(room: Room): void {
