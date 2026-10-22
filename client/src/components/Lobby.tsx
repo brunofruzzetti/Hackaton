@@ -242,9 +242,10 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
                   <div className="shrink-0 border-2 border-black bg-[#fffdf7] p-1">
                     <QRCodeSVG
                       value={entryLink}
-                      size={92}
-                      bgColor="#fffdf7"
-                      fgColor="#111827"
+                      size={156}
+                      marginSize={4}
+                      bgColor="#ffffff"
+                      fgColor="#000000"
                       level="M"
                       title="Abrir Sabotea la junta en el móvil"
                     />
@@ -341,9 +342,10 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
             <div className="mx-auto border-2 border-black bg-[#fffdf7] p-1.5">
               <QRCodeSVG
                 value={shareLink}
-                size={128}
-                bgColor="#fffdf7"
-                fgColor="#111827"
+                size={196}
+                marginSize={4}
+                bgColor="#ffffff"
+                fgColor="#000000"
                 level="M"
                 title={`Entrar en la sala ${room.code} desde el móvil`}
               />
