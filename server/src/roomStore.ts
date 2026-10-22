@@ -1,17 +1,27 @@
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import {
   AI_NAMES,
+  COMMUNITY_EVENT_OFFSETS_SECONDS,
   GAME_CONFIG,
   PROPOSALS,
+  assignComboTask,
   assignRoles,
+  buildTaskDeck,
+  computeApartmentValue,
+  drawTaskHand,
+  getShopItem,
   pickPresidentStyle,
   planComposition,
+  selectRoundEvents,
+  type CommunityEvent,
   type Phase,
   type PlayerKind,
   type PlayerState,
+  type PlayerTask,
   type PresidentStyleId,
   type RoleId,
   type RoomState,
+  type RoundResult,
   type TranscriptEntry,
   type TranscriptSource,
   type VoiceProfile,
@@ -33,6 +43,10 @@ export interface RoomPlayer {
   speaking: boolean;
   silencedUntil: number | null;
   orderWarnings: number;
+  money: number;
+  lastPct: number | null;
+  purchasedItems: string[];
+  apartmentValue: number;
   joinedAt: number;
   /** Solo en IA: perfil de voz para speechSynthesis. */
   voiceProfile: VoiceProfile | null;
@@ -61,6 +75,22 @@ export interface Room {
   aiGenerationPending: boolean;
   aiGenerationToken: number;
   judgeSpeakingUntil: number;
+  /** Detección de solapamiento para el juez. */
+  overlapSince: number;
+  lastJudgeAt: number;
+  /** Agenda privada de cada humano en la ronda actual. */
+  tasksByPlayer: Map<string, PlayerTask[]>;
+  /** Tareas ya usadas por jugador para no repetirlas entre rondas. */
+  usedTasksByPlayer: Map<string, Set<string>>;
+  /** Sucesos programados y el que está activo. */
+  eventSchedule: Array<{ at: number; event: CommunityEvent }>;
+  eventCursor: number;
+  currentEvent: CommunityEvent | null;
+  /** Juicio de la ronda. */
+  latestResult: RoundResult | null;
+  judgePending: boolean;
+  isGameOver: boolean;
+  winnerId: string | null;
 }
 
 export interface JoinResult {
@@ -100,6 +130,10 @@ function makeHuman(name: string, isHost: boolean): RoomPlayer {
     speaking: false,
     silencedUntil: null,
     orderWarnings: 0,
+    money: 0,
+    lastPct: null,
+    purchasedItems: [],
+    apartmentValue: 0,
     joinedAt: Date.now(),
     voiceProfile: null,
   };
@@ -117,6 +151,10 @@ function makeAi(name: string, aiIndex: number): RoomPlayer {
     speaking: false,
     silencedUntil: null,
     orderWarnings: 0,
+    money: 0,
+    lastPct: null,
+    purchasedItems: [],
+    apartmentValue: 0,
     joinedAt: Date.now(),
     voiceProfile: getAiVoiceProfile(aiIndex, name),
   };
@@ -164,6 +202,17 @@ export class RoomStore {
       aiGenerationPending: false,
       aiGenerationToken: 0,
       judgeSpeakingUntil: 0,
+      overlapSince: 0,
+      lastJudgeAt: 0,
+      tasksByPlayer: new Map(),
+      usedTasksByPlayer: new Map(),
+      eventSchedule: [],
+      eventCursor: 0,
+      currentEvent: null,
+      latestResult: null,
+      judgePending: false,
+      isGameOver: false,
+      winnerId: null,
     };
     this.rooms.set(code, room);
     console.log(`[rooms] Sala ${code} creada por ${host.name} (${host.id})`);
@@ -321,6 +370,17 @@ export class RoomStore {
     room.phase = "ROLES";
     room.round = 1;
     room.lastActivityAt = Date.now();
+    room.latestResult = null;
+    room.judgePending = false;
+    room.isGameOver = false;
+    room.winnerId = null;
+    for (const player of room.players.values()) {
+      player.money = 0;
+      player.lastPct = null;
+      player.orderWarnings = 0;
+      player.purchasedItems = [];
+      player.apartmentValue = 0;
+    }
     room.presidentStyleId = assignments.some((assignment) => assignment.roleId === "president")
       ? pickPresidentStyle()
       : null;
@@ -363,12 +423,213 @@ export class RoomStore {
     room.aiGenerationPending = false;
     room.aiGenerationToken += 1;
     room.judgeSpeakingUntil = 0;
+    room.overlapSince = 0;
+    room.lastJudgeAt = 0;
     room.lastActivityAt = now;
+    this.assignRoundTasks(room);
+    this.assignRoundEvents(room, now);
 
     console.log(
       `[rooms] Sala ${code}: comienza la discusión (${GAME_CONFIG.DISCUSSION_SECONDS}s, ronda ${room.round})`,
     );
     return room;
+  }
+
+  /** El anfitrión puede cerrar la discusión antes de que acabe el temporizador. */
+  endDiscussion(code: string, requesterId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const requester = this.requirePlayer(room, requesterId);
+    if (!requester.isHost) {
+      throw new GameError("NOT_HOST", "Solo el anfitrión puede cerrar la discusión.");
+    }
+    if (room.phase !== "DISCUSSION") {
+      throw new GameError("NOT_IN_DISCUSSION", "La discusión no está en curso.");
+    }
+    room.phase = "JUDGMENT";
+    room.discussionEndsAt = null;
+    this.cancelAiSpeech(room.code);
+    for (const player of room.players.values()) {
+      player.speaking = false;
+    }
+    room.lastActivityAt = Date.now();
+    console.log(`[rooms] Sala ${code}: discusión cerrada por el anfitrión`);
+    return room;
+  }
+
+  /** Pasa al siguiente round tras ver los resultados. */
+  startNextRound(code: string, requesterId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const requester = this.requirePlayer(room, requesterId);
+    if (!requester.isHost) {
+      throw new GameError("NOT_HOST", "Solo el anfitrión puede pasar de ronda.");
+    }
+    if (room.phase !== "RESULTS_SHOP") {
+      throw new GameError("NOT_IN_RESULTS", "Todavía no hay resultados que cerrar.");
+    }
+    if (room.isGameOver || room.round >= GAME_CONFIG.ROUNDS) {
+      throw new GameError("NOT_IN_RESULTS", "La partida ya ha terminado.");
+    }
+
+    const now = Date.now();
+    room.round += 1;
+    room.phase = "DISCUSSION";
+    room.discussionEndsAt = now + GAME_CONFIG.DISCUSSION_SECONDS * 1000;
+    room.latestResult = null;
+    room.judgePending = false;
+    room.currentEvent = null;
+    room.overlapSince = 0;
+    room.lastJudgeAt = 0;
+    room.judgeSpeakingUntil = 0;
+    room.lastHumanSpokeAt = now;
+    room.lastAiSpokeAt = 0;
+    room.aiNextAttemptAt = 0;
+    room.aiSpeakingUntil = 0;
+    room.aiSpeakingPlayerId = null;
+    room.aiTurns.clear();
+    room.aiTurnCursor = 0;
+    room.aiGenerationPending = false;
+    room.aiGenerationToken += 1;
+    for (const player of room.players.values()) {
+      player.orderWarnings = 0;
+      player.speaking = false;
+      player.silencedUntil = null;
+    }
+    this.assignRoundTasks(room);
+    this.assignRoundEvents(room, now);
+    room.lastActivityAt = now;
+    console.log(`[rooms] Sala ${code}: comienza la ronda ${room.round}`);
+    return room;
+  }
+
+  /** Marca que el juez está trabajando; evita juicios duplicados. */
+  beginJudgment(code: string): Room | null {
+    const room = this.rooms.get(normalizeCode(code));
+    if (!room || room.phase !== "JUDGMENT" || room.judgePending) return null;
+    room.judgePending = true;
+    return room;
+  }
+
+  releaseJudgment(code: string): void {
+    const room = this.rooms.get(normalizeCode(code));
+    if (room) room.judgePending = false;
+  }
+
+  applyRoundResult(code: string, result: RoundResult): Room {
+    const room = this.getRoomOrThrow(code);
+    room.latestResult = result;
+    room.judgePending = false;
+    room.phase = "RESULTS_SHOP";
+    room.discussionEndsAt = null;
+
+    for (const playerResult of result.players) {
+      const player = room.players.get(playerResult.playerId);
+      if (!player) continue;
+      player.money += playerResult.money;
+      player.lastPct = playerResult.totalPct;
+    }
+
+    if (room.round >= GAME_CONFIG.ROUNDS) {
+      room.isGameOver = true;
+      this.recomputeWinner(room);
+      const winner = room.winnerId ? room.players.get(room.winnerId) : null;
+      console.log(
+        `[judge] Sala ${code}: fin de la partida. Ganador provisional: ${winner?.name ?? "nadie"} ` +
+          `(${winner?.apartmentValue ?? 0} puntos de piso)`,
+      );
+    }
+
+    room.lastActivityAt = Date.now();
+    return room;
+  }
+
+  /** Compra un objeto en la tienda. Solo se puede comprar una vez por jugador. */
+  buyItem(code: string, playerId: string, itemId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const player = this.requirePlayer(room, playerId);
+    if (room.phase !== "RESULTS_SHOP") {
+      throw new GameError("NOT_IN_RESULTS", "La tienda solo está abierta al acabar la ronda.");
+    }
+    if (player.kind !== "human") {
+      throw new GameError("INVALID_REQUEST", "Los vecinos IA no tienen piso propio.");
+    }
+    const item = getShopItem(itemId);
+    if (!item) {
+      throw new GameError("INVALID_REQUEST", "Ese objeto no existe.");
+    }
+    if (player.purchasedItems.includes(item.id)) {
+      throw new GameError("INVALID_REQUEST", "Ya tienes ese objeto en tu piso.");
+    }
+    if (player.money < item.price) {
+      throw new GameError(
+        "INVALID_REQUEST",
+        `No te llega el dinero: necesitas ${item.price} € y tienes ${player.money} €.`,
+      );
+    }
+
+    player.money -= item.price;
+    player.purchasedItems.push(item.id);
+    player.apartmentValue = computeApartmentValue(player.purchasedItems);
+    if (room.isGameOver) {
+      this.recomputeWinner(room);
+    }
+    room.lastActivityAt = Date.now();
+    console.log(
+      `[shop] ${player.name}@${room.code} compró ${item.name} por ${item.price} € ` +
+        `(piso: ${player.apartmentValue} puntos, quedan ${player.money} €)`,
+    );
+    return room;
+  }
+
+  private recomputeWinner(room: Room): void {
+    const humans = [...room.players.values()].filter((player) => player.kind === "human");
+    const winner = [...humans].sort(
+      (a, b) => b.apartmentValue - a.apartmentValue || b.money - a.money,
+    )[0];
+    room.winnerId = winner?.id ?? null;
+  }
+
+  private assignRoundTasks(room: Room): void {
+    const hands = new Map<string, PlayerTask[]>();
+    const comboParticipants: Array<{ id: string; name: string; roleId: RoleId }> = [];
+
+    for (const player of room.players.values()) {
+      if (player.kind !== "human" || !player.roleId) continue;
+      const deck = buildTaskDeck(player.roleId, room.presidentStyleId);
+      const used = room.usedTasksByPlayer.get(player.id) ?? new Set<string>();
+      const hand: PlayerTask[] = drawTaskHand(deck, Math.random, used).map((task) => ({
+        ...task,
+        kind: "solo",
+      }));
+      for (const task of hand) used.add(task.id);
+      room.usedTasksByPlayer.set(player.id, used);
+      hands.set(player.id, hand);
+      comboParticipants.push({ id: player.id, name: player.name, roleId: player.roleId });
+    }
+
+    const combo = assignComboTask(hands, comboParticipants);
+    room.tasksByPlayer = hands;
+    console.log(
+      `[tasks] Sala ${room.code}: ${hands.size} agendas de 4 tareas` +
+        (combo
+          ? ` · combo ${combo.combo.id} (${combo.players[0].name} + ${combo.players[1].name})`
+          : " · sin combo (faltan roles compatibles)"),
+    );
+  }
+
+  private assignRoundEvents(room: Room, now: number): void {
+    const presentRoles = [...room.players.values()]
+      .map((player) => player.roleId)
+      .filter((roleId): roleId is RoleId => roleId !== null);
+    const events = selectRoundEvents(presentRoles);
+    room.currentEvent = null;
+    room.eventCursor = 0;
+    room.eventSchedule = events.map((event, index) => ({
+      at: now + (COMMUNITY_EVENT_OFFSETS_SECONDS[index] ?? index * 60) * 1000,
+      event,
+    }));
+    console.log(
+      `[events] Sala ${room.code}: ${events.map((event) => event.id).join(", ")}`,
+    );
   }
 
   chat(code: string, playerId: string, text: string): TranscriptEntry {
@@ -491,9 +752,14 @@ export class RoomStore {
     return room;
   }
 
-  /** Tick del reloj de sala: fin de discusión y fin del turno de una IA. */
-  tick(now = Date.now()): string[] {
+  /** Tick del reloj de sala: fin de discusión, sucesos y fin del turno de una IA. */
+  tick(now = Date.now()): {
+    changed: string[];
+    events: Array<{ code: string; event: CommunityEvent }>;
+  } {
     const changed: string[] = [];
+    const events: Array<{ code: string; event: CommunityEvent }> = [];
+
     for (const room of this.rooms.values()) {
       if (room.phase === "DISCUSSION" && room.discussionEndsAt !== null && now >= room.discussionEndsAt) {
         room.phase = "JUDGMENT";
@@ -507,20 +773,51 @@ export class RoomStore {
         console.log(`[rooms] Sala ${room.code}: fin de la discusión, comienza el juicio`);
         continue;
       }
+
+      if (room.phase === "DISCUSSION") {
+        while (room.eventCursor < room.eventSchedule.length) {
+          const scheduled = room.eventSchedule[room.eventCursor];
+          if (!scheduled || scheduled.at > now) break;
+          room.eventCursor += 1;
+          room.currentEvent = scheduled.event;
+          this.addTranscriptEntry(room.code, {
+            playerId: null,
+            playerName: "Comunidad",
+            roleId: null,
+            text: `📢 ${scheduled.event.title}: ${scheduled.event.description}`,
+            source: "system",
+          });
+          events.push({ code: room.code, event: scheduled.event });
+          changed.push(room.code);
+          console.log(`[events] ${room.code}: ${scheduled.event.title}`);
+        }
+      }
+
       if (room.aiSpeakingPlayerId && now >= room.aiSpeakingUntil) {
         this.finishAiSpeech(room.code);
         changed.push(room.code);
       }
     }
-    return changed;
+    return { changed, events };
   }
 
   getDiscussionRooms(): Room[] {
-    return [...this.rooms.values()].filter((room) => room.phase === "DISCUSSION");
+    return this.getRoomsInPhase("DISCUSSION");
+  }
+
+  getRoomsInPhase(phase: Phase): Room[] {
+    return [...this.rooms.values()].filter((room) => room.phase === phase);
   }
 
   getRoom(code: string): Room | null {
     return this.rooms.get(normalizeCode(code)) ?? null;
+  }
+
+  /** Agenda privada de un humano (nunca se incluye en RoomState). */
+  getTasksForPlayer(code: string, playerId: string): PlayerTask[] {
+    const room = this.rooms.get(normalizeCode(code));
+    if (!room) return [];
+    return [...(room.tasksByPlayer.get(playerId) ?? [])];
   }
 
   disconnect(code: string, playerId: string): boolean {
@@ -574,12 +871,20 @@ export class RoomStore {
           speaking: player.speaking,
           silencedUntil: player.silencedUntil,
           orderWarnings: player.orderWarnings,
+          money: player.money,
+          lastPct: player.lastPct,
+          purchasedItems: [...player.purchasedItems],
+          apartmentValue: player.apartmentValue,
         }),
       ),
       transcript: [...room.transcript],
       createdAt: room.createdAt,
       discussionEndsAt: room.discussionEndsAt,
       presidentStyleId: room.presidentStyleId,
+      currentEvent: room.currentEvent,
+      latestResult: room.latestResult,
+      isGameOver: room.isGameOver,
+      winnerId: room.winnerId,
     };
   }
 

@@ -58,6 +58,13 @@ export function TranscriptPanel({
           </p>
         ) : (
           entries.map((entry) => {
+            if (entry.source === "system") {
+              return (
+                <article key={entry.id} className="transcript-entry system">
+                  <p>{entry.text}</p>
+                </article>
+              );
+            }
             const roleName = entry.roleId
               ? getEffectiveRole(entry.roleId, presidentStyleId).name
               : "Vecino";

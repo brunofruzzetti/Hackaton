@@ -103,6 +103,7 @@ export class AiDirector {
         transcript: room.transcript,
         players,
         presidentName,
+        currentEvent: room.currentEvent,
       });
 
       const text = await this.llm.generateNeighborLine({

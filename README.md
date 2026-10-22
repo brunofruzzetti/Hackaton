@@ -13,11 +13,11 @@ para amueblar el piso; tras 3 rondas gana el piso de mayor valor.
 | 1 | Salas, lobby WS, roles y composición validada | ✅ |
 | 2 | LiveKit, push-to-talk, STT, transcripción compartida | ✅ |
 | 3 | Vecinos IA + TTS + cola de turnos | ✅ |
-| 4 | Tareas por ronda, temporizador y escena 2D | ⏳ |
-| 5 | Juez moderador en directo | ⏳ |
-| 6 | Juez de final de ronda y dinero | ⏳ |
-| 7 | Tienda y piso | ⏳ |
-| 8 | Pulido | ⏳ |
+| 4 | Tareas por ronda, sucesos, temporizador y portal 2D | ✅ |
+| 5 | Juez moderador en directo | ✅ |
+| 6 | Juez de final de ronda, tareas y dinero | ✅ |
+| 7 | Tienda, rendimientos decrecientes y edificio 2D | ✅ |
+| 8 | Acciones de rol, sonidos, estadísticas, espectador y pulido | ⏳ |
 
 ## Requisitos
 
@@ -37,7 +37,8 @@ Rellena `.env` con lo que tengas. La app arranca aunque falten claves:
 
 - Sin LiveKit: el audio no se conecta y se avisa en pantalla; el resto sigue funcionando.
 - Sin STT: usa `STT_PROVIDER=mock` para probar el flujo de transcripción sin gastar API.
-- Sin DeepSeek: los hitos 3–6 mostrarán error controlado (aún no implementados).
+- Sin DeepSeek: se usa `LLM_PROVIDER=mock` para vecinos IA y juez; el flujo completo sigue
+  funcionando con contenido simulado.
 
 ## Arrancar en desarrollo
 
@@ -135,6 +136,30 @@ repiten. La presidencia tiene **3 estilos aleatorios**: dictador, a su pesar e i
 Si aparece el conserje, el presidente siempre está en la partida y el conserje IA conoce su
 nombre.
 
+## Tareas, sucesos y juicio
+
+- Cada humano recibe **4 tareas secretas por ronda**: 3 de su rol/estilo y 1 universal.
+  Cada rol tiene un mazo de **24 tareas**; no se repiten entre rondas.
+- Las tareas pueden ser **combo**: si dos roles compatibles están en la partida, ambos
+  reciben una misión compartida y ven el nombre de su compañero.
+- Cada ronda lanza **4 sucesos de la comunidad** (de un total de 24), elegidos entre los
+  que afectan a los roles presentes.
+- El juez final evalúa tareas + cliché + participación + creatividad + reacción. El servidor
+  calcula el total (50% tareas) y el dinero (`total_pct * 10`).
+- El juez moderador avisa y silencia 3 s si **4 humanos** hablan a la vez durante 2 s, con
+  cooldown de 15 s.
+- No hay voto de jugadores para decidir el ganador. El flag `votes` queda como trasfondo
+  de propietario/no propietario.
+
+## Tienda y piso 2D
+
+- 10 objetos en 5 categorías, con precio y puntos de estilo.
+- Rendimientos decrecientes: el segundo objeto de la misma categoría da menos puntos.
+- El dinero de cada ronda se gasta en la tienda al ver los resultados.
+- El **Edificio Junta** muestra un piso por humano con los objetos comprados y su valor.
+- Tras 3 rondas gana el piso con más puntos de estilo. El portal 2D muestra a los vecinos
+  sentados por rol, el tablón de sucesos y el altavoz del juez.
+
 ## HTTPS en desarrollo (obligatorio para el micrófono)
 
 En `localhost` el navegador permite el micrófono. Desde el móvil necesitas HTTPS:
@@ -177,6 +202,11 @@ Abre la URL `https://...ngrok-free.app` en el móvil.
 5. El anfitrión pulsa **Comenzar discusión**: 4 minutos por ronda. Hablas por LiveKit,
    mantienes pulsado el push-to-talk para dejar un clip transcrito y los vecinos IA
    intervienen cuando hay silencio. El chat de texto es el plan B.
+6. Cada jugador recibe 4 tareas secretas y la comunidad lanza 4 sucesos durante la ronda.
+7. Al acabar, el juez puntúa las tareas y las intervenciones; cada % se convierte en dinero.
+8. En **Resultados y tienda** amueblas tu piso con 10 objetos; los de la misma categoría
+   rinden menos.
+9. Tras 3 rondas, gana el piso con más puntos de estilo.
 
 ## Endpoints
 
@@ -196,3 +226,7 @@ Abre la URL `https://...ngrok-free.app` en el móvil.
 - `docs/hito-1.md`: pruebas de salas, lobby y composición.
 - `docs/hito-2.md`: pruebas de LiveKit, PTT y transcripción.
 - `docs/hito-3.md`: pruebas de vecinos IA, TTS y turnos.
+- `docs/hito-4.md`: tareas, sucesos y portal 2D.
+- `docs/hito-5.md`: juez moderador y silencio forzado.
+- `docs/hito-6.md`: juez final, puntuación y dinero.
+- `docs/hito-7.md`: tienda, rendimientos decrecientes y edificio 2D.

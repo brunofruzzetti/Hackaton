@@ -17,6 +17,8 @@ export interface LiveKitAudio {
   status: AudioStatus;
   error: string | null;
   muted: boolean;
+  /** true solo cuando el juez ha silenciado al jugador. */
+  judgeMuted: boolean;
   localTrack: LocalAudioTrack | null;
   speakingIds: string[];
   canPlaybackAudio: boolean;
@@ -30,6 +32,7 @@ interface UseLiveKitOptions {
   session: Session | null;
   enabled: boolean;
   onSpeakingChange: (speaking: boolean) => void;
+  silencedUntil?: number | null;
 }
 
 function friendlyAudioError(error: unknown): string {
@@ -53,10 +56,12 @@ export function useLiveKit({
   session,
   enabled,
   onSpeakingChange,
+  silencedUntil = null,
 }: UseLiveKitOptions): LiveKitAudio {
   const [status, setStatus] = useState<AudioStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
+  const [judgeMuted, setJudgeMuted] = useState(false);
   const [localTrack, setLocalTrack] = useState<LocalAudioTrack | null>(null);
   const [speakingIds, setSpeakingIds] = useState<string[]>([]);
   const [canPlaybackAudio, setCanPlaybackAudio] = useState(true);
@@ -65,6 +70,8 @@ export function useLiveKit({
   const roomRef = useRef<Room | null>(null);
   const trackRef = useRef<LocalAudioTrack | null>(null);
   const mutedRef = useRef(false);
+  const judgeMutedRef = useRef(false);
+  const judgeMuteTimerRef = useRef<number | null>(null);
   const speakingCallbackRef = useRef(onSpeakingChange);
   speakingCallbackRef.current = onSpeakingChange;
 
@@ -90,6 +97,8 @@ export function useLiveKit({
     setError(null);
     setMuted(false);
     mutedRef.current = false;
+    setJudgeMuted(false);
+    judgeMutedRef.current = false;
     setLocalTrack(null);
     setSpeakingIds([]);
     setCanPlaybackAudio(true);
@@ -209,11 +218,58 @@ export function useLiveKit({
       setSpeakingIds([]);
       setMuted(false);
       mutedRef.current = false;
+      setJudgeMuted(false);
+      judgeMutedRef.current = false;
+      if (judgeMuteTimerRef.current !== null) {
+        window.clearTimeout(judgeMuteTimerRef.current);
+        judgeMuteTimerRef.current = null;
+      }
       setStatus("idle");
     };
   }, [enabled, session, retryKey]);
 
+  const muteForJudge = useCallback(async (untilMs: number): Promise<void> => {
+    const remaining = untilMs - Date.now();
+    if (remaining <= 0) return;
+    const track = trackRef.current;
+    if (!track) return;
+
+    // Si el jugador ya estaba silenciado a mano, no lo reactivamos al acabar.
+    if (!judgeMutedRef.current && mutedRef.current) return;
+
+    if (!judgeMutedRef.current) {
+      try {
+        await track.mute();
+        judgeMutedRef.current = true;
+        setJudgeMuted(true);
+        setMuted(true);
+        speakingCallbackRef.current(false);
+      } catch {
+        return;
+      }
+    }
+
+    if (judgeMuteTimerRef.current !== null) {
+      window.clearTimeout(judgeMuteTimerRef.current);
+    }
+    judgeMuteTimerRef.current = window.setTimeout(() => {
+      judgeMuteTimerRef.current = null;
+      if (!judgeMutedRef.current) return;
+      judgeMutedRef.current = false;
+      setJudgeMuted(false);
+      setMuted(false);
+      void trackRef.current?.unmute();
+    }, remaining);
+  }, []);
+
+  useEffect(() => {
+    if (silencedUntil && silencedUntil > Date.now()) {
+      void muteForJudge(silencedUntil);
+    }
+  }, [silencedUntil, muteForJudge]);
+
   const toggleMute = useCallback(async (): Promise<void> => {
+    if (judgeMutedRef.current) return;
     const track = trackRef.current;
     if (!track) {
       setError("El micrófono todavía no está listo.");
@@ -250,6 +306,7 @@ export function useLiveKit({
     status,
     error,
     muted,
+    judgeMuted,
     localTrack,
     speakingIds,
     canPlaybackAudio,

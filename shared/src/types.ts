@@ -1,3 +1,4 @@
+import type { CommunityEvent } from "./communityEvents.js";
 import type { PresidentStyleId, RoleId } from "./roles.js";
 
 /** Fases de una ronda. El orden está fijado por el servidor. */
@@ -19,6 +20,14 @@ export interface PlayerState {
   silencedUntil: number | null;
   /** Hito 5: avisos de orden acumulados en la ronda. */
   orderWarnings: number;
+  /** Dinero acumulado tras las rondas juzgadas. */
+  money: number;
+  /** Último porcentaje obtenido, si ya ha sido juzgado. */
+  lastPct: number | null;
+  /** Objetos comprados en la tienda, en orden de compra. */
+  purchasedItems: string[];
+  /** Valor de estilo del piso con rendimientos decrecientes. */
+  apartmentValue: number;
 }
 
 export type TranscriptSource = "voice" | "chat" | "ai" | "system";
@@ -56,6 +65,47 @@ export interface RoomState {
   createdAt: number;
   discussionEndsAt: number | null;
   presidentStyleId: PresidentStyleId | null;
+  /** Suceso comunitario activo (Hito 4). */
+  currentEvent: CommunityEvent | null;
+  /** Resultado de la última ronda juzgada. */
+  latestResult: RoundResult | null;
+  isGameOver: boolean;
+  winnerId: string | null;
+}
+
+export interface TaskEvaluation {
+  taskId: string;
+  /** Texto de la tarea para mostrarla en el acta de resultados. */
+  taskText: string;
+  cumplida: boolean;
+  evidencia: string;
+}
+
+export interface JudgeScores {
+  fidelidad_cliche: number;
+  participacion: number;
+  creatividad: number;
+  reaccion_a_otros: number;
+}
+
+export interface PlayerRoundResult {
+  playerId: string;
+  playerName: string;
+  roleId: RoleId | null;
+  tasks: TaskEvaluation[];
+  taskScore: number;
+  scores: JudgeScores;
+  totalPct: number;
+  money: number;
+  evidencia: string;
+  comentarioGracioso: string;
+  orderWarnings: number;
+}
+
+export interface RoundResult {
+  round: number;
+  judgedAt: number;
+  players: PlayerRoundResult[];
 }
 
 /** Identidad del jugador que acaba de entrar. */

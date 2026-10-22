@@ -10,10 +10,15 @@ import {
   type RoomState,
   type SelfState,
 } from "@shared/index";
+import type { PlayerTask } from "@shared/index";
 import type { ConnectionStatus } from "../hooks/useGameSocket";
 import { useLiveKit } from "../hooks/useLiveKit";
 import type { Session } from "../lib/session";
+import { ApartmentScene } from "./ApartmentScene";
 import { AudioPanel } from "./AudioPanel";
+import { PortalScene } from "./PortalScene";
+import { ShopPanel } from "./ShopPanel";
+import { TaskHand } from "./TaskHand";
 import { TranscriptPanel } from "./TranscriptPanel";
 
 const PHASE_LABELS: Record<Phase, string> = {
@@ -33,11 +38,15 @@ interface LobbyProps {
   onRemoveAi: (playerId: string) => void;
   onStart: () => void;
   onStartDiscussion: () => void;
+  onEndDiscussion: () => void;
+  onNextRound: () => void;
+  onBuyItem: (itemId: string) => void;
   onLeave: () => void;
   onSendChat: (text: string) => void;
   onSpeakingChange: (speaking: boolean) => void;
   onError: (message: string) => void;
   judgeMessage: string | null;
+  tasks: PlayerTask[];
 }
 
 function initials(name: string): string {
@@ -65,11 +74,15 @@ export function Lobby({
   onRemoveAi,
   onStart,
   onStartDiscussion,
+  onEndDiscussion,
+  onNextRound,
+  onBuyItem,
   onLeave,
   onSendChat,
   onSpeakingChange,
   onError,
   judgeMessage,
+  tasks,
 }: LobbyProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -101,10 +114,13 @@ export function Lobby({
   const inLobby = room.phase === "LOBBY";
   const shareLink = `${window.location.origin}/sala/${room.code}`;
 
+  const me = room.players.find((player) => player.id === you.playerId);
+  const silencedUntil = me?.silencedUntil ?? null;
   const audio = useLiveKit({
     session,
     enabled: status === "connected",
     onSpeakingChange,
+    silencedUntil,
   });
 
   const speakingIds = new Set<string>(audio.speakingIds);
@@ -148,6 +164,13 @@ export function Lobby({
         </div>
       )}
 
+      <PortalScene
+        room={room}
+        speakingIds={speakingIds}
+        countdown={countdown}
+        judgeMessage={judgeMessage}
+      />
+
       <section className="code-card">
         <p className="label">Código para invitar</p>
         <div className="code-value">{room.code}</div>
@@ -176,6 +199,27 @@ export function Lobby({
           Ronda {Math.max(room.round, 1)} de {GAME_CONFIG.ROUNDS}
         </p>
       </section>
+
+      {room.currentEvent && (
+        <section className="card event-card">
+          <p className="label">Suceso de la comunidad</p>
+          <h2>{room.currentEvent.title}</h2>
+          <p>{room.currentEvent.description}</p>
+        </section>
+      )}
+
+      {room.phase === "DISCUSSION" && (
+        <section className="card task-hand-card">
+          <div className="card-head">
+            <h2>Tu agenda secreta</h2>
+            <span className="badge badge-secret">Solo tú</span>
+          </div>
+          <p className="hint">
+            Cumple estas 4 tareas durante la ronda. El juez decidirá si las has cumplido.
+          </p>
+          <TaskHand tasks={tasks} />
+        </section>
+      )}
 
       <AudioPanel audio={audio} session={session} speakingNames={speakingNames} onError={onError} />
 
@@ -219,6 +263,12 @@ export function Lobby({
                     {player.kind === "ai" && <span className="badge badge-ai">IA</span>}
                     {isSpeaking && <span className="badge badge-speaking">Hablando</span>}
                     {!player.connected && <span className="badge badge-offline">Desconectado</span>}
+                    {player.kind === "human" && player.money > 0 && (
+                      <span className="badge badge-money">{player.money} €</span>
+                    )}
+                    {player.kind === "human" && player.apartmentValue > 0 && (
+                      <span className="badge badge-flat">{player.apartmentValue} pts piso</span>
+                    )}
                   </div>
                   <p className="player-role">
                     {role ? role.name : inLobby ? "Sin rol todavía" : "Vecino"}
@@ -331,6 +381,11 @@ export function Lobby({
             La IA escucha. Si hablas, se cancelan las respuestas pendientes de los vecinos IA.
             El juez interviene si hay 4 o más personas hablando a la vez.
           </p>
+          {isHost && (
+            <button className="btn btn-ghost btn-small" type="button" onClick={onEndDiscussion}>
+              Terminar discusión ahora
+            </button>
+          )}
         </section>
       )}
 
@@ -340,10 +395,121 @@ export function Lobby({
             <h2>El juez está deliberando</h2>
             <span className="badge">Acta</span>
           </div>
-          <p className="hint">
-            La discusión ha terminado. El juez revisará las tareas y las intervenciones de la
-            ronda. Los resultados y el dinero llegarán en el siguiente hito.
-          </p>
+          <div className="judging-row">
+            <span className="spinner" aria-hidden="true" />
+            <p className="hint">
+              Revisando tareas, evidencias y avisos de orden. En unos segundos tendrás el acta
+              con el dinero de la ronda.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {room.phase === "RESULTS_SHOP" && room.latestResult && (
+        <section className="card results-card">
+          <div className="card-head">
+            <h2>Acta de la ronda {room.latestResult.round}</h2>
+            <span className={`badge ${room.isGameOver ? "badge-vote" : ""}`}>
+              {room.isGameOver ? "Final" : "Resultados"}
+            </span>
+          </div>
+
+          {room.isGameOver && (
+            <div className="winner-banner">
+              🏆 Va ganando{" "}
+              <strong>
+                {room.players.find((player) => player.id === room.winnerId)?.name ?? "la comunidad"}
+              </strong>{" "}
+              con {room.players.find((player) => player.id === room.winnerId)?.apartmentValue ?? 0}{" "}
+              puntos de piso. La tienda sigue abierta: el ganador puede cambiar.
+            </div>
+          )}
+
+          <div className="standings">
+            {[...room.players]
+              .filter((player) => player.kind === "human")
+              .sort(
+                (a, b) =>
+                  (room.isGameOver ? b.apartmentValue - a.apartmentValue : b.money - a.money) ||
+                  b.money - a.money,
+              )
+              .map((player, index) => (
+                <div className="standing-row" key={player.id}>
+                  <span className="standing-pos">{index + 1}</span>
+                  <span className="standing-name">
+                    {player.name}
+                    {player.id === you.playerId ? " (tú)" : ""}
+                  </span>
+                  <span className="standing-money">{player.apartmentValue} pts</span>
+                  <span className="standing-cash">{player.money} €</span>
+                </div>
+              ))}
+          </div>
+
+          <div className="result-grid">
+            {room.latestResult.players.map((result) => {
+              const role = result.roleId
+                ? getEffectiveRole(result.roleId, room.presidentStyleId)
+                : null;
+              return (
+                <article
+                  key={result.playerId}
+                  className={`result-card ${result.playerId === you.playerId ? "own" : ""}`}
+                >
+                  <header>
+                    <div>
+                      <strong>{result.playerName}</strong>
+                      <p className="label">{role?.name ?? "Vecino"}</p>
+                    </div>
+                    <span className="result-pct">{result.totalPct}%</span>
+                  </header>
+                  <p className="result-money">+{result.money} €</p>
+                  <ul className="result-tasks">
+                    {result.tasks.map((task) => (
+                      <li key={task.taskId} className={task.cumplida ? "done" : "failed"}>
+                        <span aria-hidden="true">{task.cumplida ? "✓" : "✗"}</span>
+                        <span>{task.taskText}</span>
+                        {task.evidencia && <em>«{task.evidencia}»</em>}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="result-scores">
+                    Cliché {result.scores.fidelidad_cliche} · Participación{" "}
+                    {result.scores.participacion} · Creatividad {result.scores.creatividad} ·
+                    Reacción {result.scores.reaccion_a_otros}
+                    {result.orderWarnings > 0 ? ` · ${result.orderWarnings} aviso(s) de orden` : ""}
+                  </p>
+                  <p className="result-comment">“{result.comentarioGracioso}”</p>
+                  {result.evidencia && <p className="result-evidence">Acta: «{result.evidencia}»</p>}
+                </article>
+              );
+            })}
+          </div>
+
+          <ApartmentScene
+            players={room.players}
+            youId={you.playerId}
+            winnerId={room.winnerId}
+            isGameOver={room.isGameOver}
+            presidentStyleId={room.presidentStyleId}
+          />
+
+          <ShopPanel
+            money={me?.money ?? 0}
+            purchasedItems={me?.purchasedItems ?? []}
+            onBuyItem={onBuyItem}
+          />
+
+          {isHost && !room.isGameOver && (
+            <button className="btn btn-primary" type="button" onClick={onNextRound}>
+              Siguiente ronda ({room.round + 1}/{GAME_CONFIG.ROUNDS})
+            </button>
+          )}
+          {room.isGameOver && (
+            <p className="hint center">
+              La partida ha terminado. Puedes seguir amueblando tu piso antes de cerrar la junta.
+            </p>
+          )}
         </section>
       )}
 

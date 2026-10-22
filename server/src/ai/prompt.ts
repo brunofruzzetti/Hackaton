@@ -2,6 +2,7 @@ import {
   AI_CONFIG,
   buildRolePrompt,
   getEffectiveRole,
+  type CommunityEvent,
   type PresidentStyleId,
   type RoleId,
   type TranscriptEntry,
@@ -21,6 +22,7 @@ export interface NeighborPromptInput {
   transcript: readonly TranscriptEntry[];
   players: readonly NeighborPromptPlayer[];
   presidentName?: string | null;
+  currentEvent?: CommunityEvent | null;
 }
 
 function roleName(roleId: RoleId | null, styleId: PresidentStyleId | null): string {
@@ -80,6 +82,9 @@ export function buildNeighborPrompt(input: NeighborPromptInput): {
 
   const userPrompt = [
     `Propuesta de la comunidad: ${input.proposal}`,
+    input.currentEvent
+      ? `Suceso actual: ${input.currentEvent.title}. ${input.currentEvent.description}`
+      : "Suceso actual: no hay ninguno activo.",
     `Vecinos presentes: ${present}`,
     "Últimas intervenciones:",
     transcriptText,

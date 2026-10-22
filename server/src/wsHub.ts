@@ -3,7 +3,9 @@ import { WebSocket, WebSocketServer, type RawData } from "ws";
 import {
   clientMessageSchema,
   type ClientMessage,
+  type CommunityEvent,
   type RoleId,
+  type RoundResult,
   type ServerErrorCode,
   type ServerMessage,
   type TranscriptEntry,
@@ -101,6 +103,7 @@ export class WsHub {
               isHost: result.player.isHost,
             },
             token: result.token,
+            tasks: this.store.getTasksForPlayer(result.room.code, result.player.id),
           });
           this.broadcastRoom(result.room.code);
           return;
@@ -134,6 +137,7 @@ export class WsHub {
               isHost: result.player.isHost,
             },
             token: result.token,
+            tasks: this.store.getTasksForPlayer(result.room.code, result.player.id),
           });
           this.broadcastRoom(result.room.code);
           return;
@@ -172,6 +176,23 @@ export class WsHub {
         }
         case "start_discussion": {
           this.store.startDiscussion(session.code, session.playerId);
+          this.broadcastRoom(session.code);
+          this.sendTasks(session.code);
+          return;
+        }
+        case "end_discussion": {
+          this.store.endDiscussion(session.code, session.playerId);
+          this.broadcastRoom(session.code);
+          return;
+        }
+        case "next_round": {
+          this.store.startNextRound(session.code, session.playerId);
+          this.broadcastRoom(session.code);
+          this.sendTasks(session.code);
+          return;
+        }
+        case "buy_item": {
+          this.store.buyItem(session.code, session.playerId, message.itemId);
           this.broadcastRoom(session.code);
           return;
         }
@@ -290,6 +311,39 @@ export class WsHub {
     reason: "human_speaking" | "phase_change" | "server",
   ): void {
     this.broadcast(code, { type: "tts_cancel", reason });
+  }
+
+  broadcastCommunityEvent(code: string, event: CommunityEvent): void {
+    this.broadcast(code, { type: "community_event", event });
+  }
+
+  broadcastJudgeSays(
+    code: string,
+    text: string,
+    kind: "order" | "result" | "event",
+    voice: VoiceProfile,
+  ): void {
+    this.broadcast(code, { type: "judge_says", text, kind, voice });
+  }
+
+  broadcastRoundResults(code: string, result: RoundResult): void {
+    this.broadcast(code, { type: "round_results", result });
+  }
+
+  /** Envía a cada humano su agenda privada (nunca a los demás). */
+  sendTasks(code: string): void {
+    const room = this.store.getRoom(code);
+    if (!room) return;
+    for (const player of room.players.values()) {
+      if (player.kind !== "human") continue;
+      const socket = this.socketsByPlayer.get(sessionKey(code, player.id));
+      if (!socket) continue;
+      this.send(socket, {
+        type: "tasks_assigned",
+        round: room.round,
+        tasks: this.store.getTasksForPlayer(code, player.id),
+      });
+    }
   }
 
   private broadcastRoom(code: string): void {

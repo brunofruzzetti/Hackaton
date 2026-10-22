@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ClientMessage,
+  PlayerTask,
   RoomState,
   SelfState,
   ServerMessage,
@@ -49,6 +50,7 @@ export interface GameSocket {
   room: RoomState | null;
   you: SelfState | null;
   session: Session | null;
+  tasks: PlayerTask[];
   error: string | null;
   judgeMessage: string | null;
   clearError: () => void;
@@ -59,6 +61,9 @@ export interface GameSocket {
   removeAi: (playerId: string) => void;
   startGame: () => void;
   startDiscussion: () => void;
+  endDiscussion: () => void;
+  nextRound: () => void;
+  buyItem: (itemId: string) => void;
   sendChat: (text: string) => void;
   setSpeaking: (speaking: boolean) => void;
   leave: () => void;
@@ -69,6 +74,7 @@ export function useGameSocket(): GameSocket {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [you, setYou] = useState<SelfState | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [tasks, setTasks] = useState<PlayerTask[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [judgeMessage, setJudgeMessage] = useState<string | null>(null);
 
@@ -171,6 +177,7 @@ export function useGameSocket(): GameSocket {
         applyRoom(message.state);
         setYou(message.you);
         setSession(session);
+        setTasks(message.tasks ?? []);
         setStatus("connected");
         setError(null);
         if (window.location.pathname !== `/sala/${session.code}`) {
@@ -184,6 +191,19 @@ export function useGameSocket(): GameSocket {
       }
       case "transcript_append": {
         appendTranscriptEntry(message.entry);
+        break;
+      }
+      case "tasks_assigned": {
+        setTasks(message.tasks);
+        setError(null);
+        break;
+      }
+      case "community_event": {
+        // El suceso también llega en room_state; aquí se podría disparar sonido.
+        break;
+      }
+      case "round_results": {
+        // El room_state posterior incluye el resultado completo.
         break;
       }
       case "neighbor_says": {
@@ -284,6 +304,7 @@ export function useGameSocket(): GameSocket {
     applyRoom(null);
     setYou(null);
     setSession(null);
+    setTasks([]);
     setError(null);
     attemptsRef.current = 0;
     openSocket({ type: "create_room", name });
@@ -296,6 +317,7 @@ export function useGameSocket(): GameSocket {
     applyRoom(null);
     setYou(null);
     setSession(null);
+    setTasks([]);
     setError(null);
     attemptsRef.current = 0;
     openSocket({ type: "join", code: code.toUpperCase(), name });
@@ -317,6 +339,18 @@ export function useGameSocket(): GameSocket {
   function startDiscussion(): void {
     tts.prime();
     sendAction({ type: "start_discussion" });
+  }
+
+  function endDiscussion(): void {
+    sendAction({ type: "end_discussion" });
+  }
+
+  function nextRound(): void {
+    sendAction({ type: "next_round" });
+  }
+
+  function buyItem(itemId: string): void {
+    sendAction({ type: "buy_item", itemId });
   }
 
   function sendChat(text: string): void {
@@ -351,6 +385,7 @@ export function useGameSocket(): GameSocket {
     applyRoom(null);
     setYou(null);
     setSession(null);
+    setTasks([]);
     setError(null);
     setJudgeMessage(null);
     setStatus("idle");
@@ -362,6 +397,7 @@ export function useGameSocket(): GameSocket {
     room,
     you,
     session,
+    tasks,
     error,
     judgeMessage,
     clearError: () => setError(null),
@@ -372,6 +408,9 @@ export function useGameSocket(): GameSocket {
     removeAi,
     startGame,
     startDiscussion,
+    endDiscussion,
+    nextRound,
+    buyItem,
     sendChat,
     setSpeaking,
     leave,

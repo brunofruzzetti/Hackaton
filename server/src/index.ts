@@ -11,6 +11,8 @@ import { createLlmService } from "./ai/llm.js";
 import { AiDirector } from "./ai/director.js";
 import { env, livekitConfigured, logEnvSummary } from "./env.js";
 import { GameError } from "./errors.js";
+import { JudgeModerator } from "./judgeModerator.js";
+import { JudgeOrchestrator } from "./judge/orchestrator.js";
 import { createLivekitToken, getLivekitConfigFromEnv } from "./livekit.js";
 import { RoomStore, type RoomPlayer } from "./roomStore.js";
 import { createSttProvider, SttError, transcribeWithRetry } from "./stt/index.js";
@@ -22,6 +24,10 @@ const hub = new WsHub(app.server, store);
 const llm = createLlmService();
 const aiDirector = new AiDirector(store, hub, llm);
 aiDirector.start();
+const judgeModerator = new JudgeModerator(store, hub, env.JUDGE_FORCE_MUTE);
+judgeModerator.start();
+const judgeOrchestrator = new JudgeOrchestrator(store, hub);
+judgeOrchestrator.start();
 const sttProvider = createSttProvider(env.STT_PROVIDER, {
   openai: env.OPENAI_API_KEY,
   deepgram: env.DEEPGRAM_API_KEY,
@@ -239,8 +245,12 @@ app.post(
 );
 
 const clockTimer = setInterval(() => {
-  for (const code of store.tick()) {
+  const tick = store.tick();
+  for (const code of tick.changed) {
     hub.broadcastRoomState(code);
+  }
+  for (const { code, event } of tick.events) {
+    hub.broadcastCommunityEvent(code, event);
   }
 }, 1000);
 clockTimer.unref();

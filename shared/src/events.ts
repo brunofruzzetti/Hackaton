@@ -1,8 +1,11 @@
 import { z } from "zod";
+import type { CommunityEvent } from "./communityEvents.js";
 import type { RoleId } from "./roles.js";
+import type { PlayerTask } from "./tasks.js";
 import type {
   PlayerState,
   RoomState,
+  RoundResult,
   SelfState,
   TranscriptEntry,
   VoiceProfile,
@@ -39,6 +42,9 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("remove_ai"), playerId: z.string().min(1).max(64) }),
   z.object({ type: z.literal("start_game") }),
   z.object({ type: z.literal("start_discussion") }),
+  z.object({ type: z.literal("end_discussion") }),
+  z.object({ type: z.literal("next_round") }),
+  z.object({ type: z.literal("buy_item"), itemId: z.string().min(1).max(40) }),
   z.object({
     type: z.literal("chat"),
     text: z.string().trim().min(1, "Mensaje vacío").max(280, "Máximo 280 caracteres"),
@@ -59,6 +65,8 @@ export type ServerErrorCode =
   | "NOT_HOST"
   | "NOT_IN_LOBBY"
   | "NOT_IN_ROLES"
+  | "NOT_IN_DISCUSSION"
+  | "NOT_IN_RESULTS"
   | "INVALID_COMPOSITION"
   | "AI_LIMIT"
   | "PLAYER_NOT_FOUND"
@@ -75,9 +83,14 @@ export type ServerMessage =
       state: RoomState;
       you: SelfState;
       token: string;
+      /** Agenda privada de la ronda (vacía fuera de DISCUSSION). */
+      tasks: PlayerTask[];
     }
   | { type: "room_state"; state: RoomState }
   | { type: "transcript_append"; entry: TranscriptEntry }
+  | { type: "tasks_assigned"; round: number; tasks: PlayerTask[] }
+  | { type: "community_event"; event: CommunityEvent }
+  | { type: "round_results"; result: RoundResult }
   | {
       type: "neighbor_says";
       entry: TranscriptEntry;

@@ -194,3 +194,64 @@ Hito 6.
 Con 10 jugadores, avisar con 3 hablantes sería constante. Se sube el umbral a **4 humanos
 simultáneos durante 2 s**, con cooldown de 15 s y mute de 3 s. Se documenta como cambio
 consciente respecto al 3+ original. El juez silenciará la voz, no el chat de texto.
+
+## Hitos 4–7
+
+### D-034 · 24 tareas por rol, 4 por jugador y ronda
+Cada rol tiene un mazo de 24 tareas (3 fáciles, 6 medias, 3 difíciles de rol + 14
+universales, ajustado por el estilo presidencial). Cada ronda se reparten 4: 1 fácil, 2
+medias y 1 difícil, garantizando 3 tareas de rol/estilo y 1 universal. Las tareas son
+secretas, se envían solo al jugador y se recuperan al reconectar. Se excluyen las ya usadas
+por ese jugador para no repetirlas entre las 3 rondas.
+
+### D-035 · Tareas combo
+Si dos humanos tienen una pareja de roles compatible (cotilla/okupa, presidente/conserje,
+moroso/derramas, gatos/teletrabajador, manitas/eco, cuñado/ex-presidente, inquilino/
+presidente, cotilla/gatos), se sustituye su tarea difícil por una combo compartida. Ambos
+reciben el nombre del compañero y ven “Combo con …”. No se generan combos con IA porque los
+IA no tienen agenda puntuable.
+
+### D-036 · 24 sucesos y 4 por ronda
+Los sucesos viven en `shared/src/communityEvents.ts`, etiquetados por roles. Cada ronda se
+elige 4, priorizando los relevantes para los roles presentes y evitando repetir la misma
+etiqueta principal. Se anuncian a los 0, 60, 120 y 180 segundos, quedan en el acta como
+entrada de sistema y alimentan el prompt de los vecinos IA. El juicio final solo ve los
+sucesos ya ocurridos.
+
+### D-037 · El juez final devuelve tareas, no el total
+El prompt del juez incluye propuesta, roles, comportamientos, tareas, avisos de orden,
+sucesos y transcripción. El modelo devuelve `tasks` (cumplida + cita), cuatro notas 0–100,
+una evidencia y un comentario. El servidor calcula `taskScore` con los puntos de dificultad
+y el `total_pct` con los pesos de `SCORING_CONFIG`. El dinero es `total_pct * 10`. Se
+reintenta una vez y, si DeepSeek falla o no hay clave, se usa un juez mock para no bloquear
+la partida.
+
+### D-038 · Sin voto de jugadores para el resultado
+El ganador y el dinero los decide el juez. El flag `votes` queda como trasfondo de
+propietario/no propietario y no se usa para puntuar. No hay votación de la propuesta en el
+MVP; el foco está en tareas y actuación.
+
+### D-039 · 3 rondas con cierre manual de discusión y paso de ronda
+El anfitrión puede terminar la discusión antes de los 4 minutos y pasar a `JUDGMENT`. Tras
+los resultados, el anfitrión pulsa **Siguiente ronda**; las tareas se renuevan sin repetir,
+los sucesos cambian, se reinician avisos y el dinero se acumula. Tras la tercera ronda la
+partida queda en `RESULTS_SHOP` con ganador provisional y la tienda abierta.
+
+### D-040 · Tienda de 10 objetos y rendimientos decrecientes
+10 objetos en 5 categorías, compra única por jugador. El valor del piso se calcula en
+servidor agrupando por categoría y aplicando multiplicadores 1, 0,7, 0,5, 0,35, 0,25 según
+el orden de compra. El precio se resta del dinero; el ganador es el mayor valor de piso, no
+quien conserva más dinero. Tras la ronda 3 el ganador se recalcula con cada compra.
+
+### D-041 · Portal 2D sin motor gráfico
+La escena es React + SVG para el portal (avatares por rol, mesa presidencial con conserje,
+tablón, ascensor, altavoz del juez) y HTML/CSS para el edificio de pisos y la tienda. No se
+usa Phaser/Pixi: el servidor es la autoridad y no hay física. La información importante
+sigue en listas y texto para accesibilidad; el color no es la única diferencia (emoji +
+nombre + rol). En móvil se oculta el texto de rol del portal y la lista de vecinos manda.
+
+### D-042 · Juez omnipresente, no personaje
+El juez se representa con un altavoz de megafonía, luz roja y subtítulos; no ocupa un
+asiento. El silencio forzado usa `RoomServiceClient` cuando LiveKit está configurado y,
+además, el cliente silencia su track durante 3 s como fallback. Se reactivan solo los tracks
+que silenció el juez, no los que el jugador ya tenía silenciados.

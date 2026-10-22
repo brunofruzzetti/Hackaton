@@ -19,13 +19,15 @@ const STATUS_LABEL: Record<LiveKitAudio["status"], string> = {
 
 export function AudioPanel({ audio, session, speakingNames, onError }: AudioPanelProps) {
   const connected = audio.status === "connected";
-  const pttDisabledReason = !connected
-    ? "El audio de la sala no está conectado."
-    : audio.muted
-      ? "Tienes el micrófono silenciado."
-      : !audio.localTrack
-        ? "Conecta un micrófono para usar el push-to-talk."
-        : "";
+  const pttDisabledReason = audio.judgeMuted
+    ? "El juez te ha silenciado durante 3 segundos."
+    : !connected
+      ? "El audio de la sala no está conectado."
+      : audio.muted
+        ? "Tienes el micrófono silenciado."
+        : !audio.localTrack
+          ? "Conecta un micrófono para usar el push-to-talk."
+          : "";
 
   return (
     <section className="card audio-card">
@@ -66,14 +68,24 @@ export function AudioPanel({ audio, session, speakingNames, onError }: AudioPane
               : "Nadie está hablando ahora mismo."}
           </div>
 
+          {audio.judgeMuted && (
+            <p className="hint warn">
+              📢 El juez te ha silenciado durante 3 segundos. Espera la cuenta atrás.
+            </p>
+          )}
+
           <div className="audio-actions">
             <button
               className={`btn ${audio.muted ? "btn-danger" : "btn-secondary"}`}
               type="button"
               onClick={() => void audio.toggleMute()}
-              disabled={!audio.localTrack}
+              disabled={!audio.localTrack || audio.judgeMuted}
             >
-              {audio.muted ? "Activar micrófono" : "Silenciar micrófono"}
+              {audio.judgeMuted
+                ? "Silenciado por el juez"
+                : audio.muted
+                  ? "Activar micrófono"
+                  : "Silenciar micrófono"}
             </button>
             {!audio.canPlaybackAudio && (
               <button

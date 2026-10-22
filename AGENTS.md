@@ -31,11 +31,19 @@ amueblar el piso. Tras 3 rondas gana el piso de mayor valor.
   `transcribeWithRetry`.
 - `server/src/ai/`: `llm.ts` (DeepSeek/mock), `prompt.ts` (prompt de rol), `director.ts`
   (cola de turnos IA) y `voices.ts` (perfiles TTS).
+- `server/src/judgeModerator.ts`: solapamiento, aviso y mute de 3 s.
+- `server/src/judge/`: prompt, esquema zod, servicio DeepSeek/mock, scoring y orquestador
+  de ronda.
+- `shared/src/tasks.ts`: 24 tareas por rol, reparto y tareas combo.
+- `shared/src/communityEvents.ts`: 24 sucesos y selección por roles presentes.
+- `shared/src/shop.ts`: 10 objetos y valor del piso con rendimientos decrecientes.
 - `client/src/hooks/useGameSocket.ts`: conexión WS, reconexión, estado de sala y eventos TTS.
   `client/src/hooks/useLiveKit.ts`: room de audio, hablantes y track local.
   `client/src/lib/tts.ts`: `TtsProvider` sobre `speechSynthesis`.
 - `client/src/components/PushToTalk.tsx`: MediaRecorder sobre el track de LiveKit,
   subida HTTP y reintento. `AudioPanel.tsx` y `TranscriptPanel.tsx`: UI de audio/acta.
+- `client/src/components/PortalScene.tsx`: portal 2D con puestos por rol y altavoz del juez.
+  `TaskHand.tsx`: agenda privada. `ShopPanel.tsx` y `ApartmentScene.tsx`: tienda y edificio.
 
 ## Convenciones de código
 
@@ -71,9 +79,17 @@ amueblar el piso. Tras 3 rondas gana el piso de mayor valor.
   forzado opcional de 3 s (`JUDGE_FORCE_MUTE=true` por defecto) y contador de avisos por
   ronda. El juez no es un personaje: es un altavoz omnipresente.
 - Puntuación final: el modelo devuelve notas 0–100 y el estado de cada tarea; `total_pct`
-  se calcula **en código** como media ponderada (50% tareas). Dinero = `total_pct * 10`
-  (configurable). No hay voto de jugadores para decidir el resultado.
+  se calcula **en código** como media ponderada (50% tareas, 20% fidelidad, 15%
+  participación, 10% creatividad, 5% reacción). Dinero = `total_pct * 10`. No hay voto de
+  jugadores para decidir el resultado.
 - Roles discretos: conserje y okupa no se penalizan por hablar poco si cumplen su cliché.
+- Tareas: 4 por humano y ronda, 3 de rol/estilo + 1 universal, de un mazo de 24 por rol.
+  3 rondas sin repetir; combo si hay pareja de roles compatible. Son secretas hasta el acta.
+- Sucesos: 4 por ronda de un total de 24, relevantes para los roles presentes. Se anuncian
+  en el tablón, el acta y el prompt de la IA.
+- Tienda: 10 objetos, una compra por objeto y jugador, rendimientos decrecientes por
+  categoría. Gana el **valor del piso**, no el dinero restante. La tienda sigue abierta
+  tras la ronda 3 y el ganador se recalcula con cada compra.
 
 ## Roles (fuente única: `shared/src/roles.ts`)
 
@@ -101,17 +117,18 @@ tareas (Hito 4) son 4 por jugador y ronda, con un mazo de 24 por rol.
 1. Salas, lobby WS, roles, composición + tests. ✅
 2. LiveKit, mute, hablantes, PTT + STT + transcripción. ✅
 3. Vecinos IA, TTS, cola de turnos, regla de silencio. ✅
-4. Tareas por ronda, temporizador y escena 2D del portal.
-5. Juez moderador en directo (solapamiento, aviso, mute forzado, cooldown).
-6. Juez de final de ronda, tareas y dinero.
-7. Tienda y piso 2D.
-8. Acciones de rol, sonidos, estadísticas, modo espectador y pulido.
+4. Tareas por ronda, sucesos, temporizador y escena 2D del portal. ✅
+5. Juez moderador en directo (solapamiento, aviso, mute forzado, cooldown). ✅
+6. Juez de final de ronda, tareas, dinero y 3 rondas. ✅
+7. Tienda, piso 2D y ganador por valor del piso. ✅
+8. Acciones de rol, sonidos, estadísticas, modo espectador y pulido. ⏳
 
 ## Pruebas
 
 - `npm test` ejecuta Vitest (tests de `/shared` y `/server`).
 - `npm run typecheck` debe pasar antes de cada commit.
 - Probar siempre el flujo móvil con túnel HTTPS antes de dar un hito por terminado.
+- Pruebas manuales por hito: `docs/hito-1.md` … `docs/hito-7.md`.
 - Para audio se puede usar LiveKit Cloud o el binario local `--dev` (ver `docs/hito-2.md`).
   Sin claves, `STT_PROVIDER=mock` permite probar el flujo de transcripción completo.
 - Los navegadores automatizados pueden no tener micrófono: el audio remoto y el chat sí se
