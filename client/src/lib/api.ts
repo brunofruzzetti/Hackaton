@@ -9,6 +9,8 @@ export interface PublicConfig {
   livekitConfigured: boolean;
   livekitUrl: string | null;
   supabaseConfigured?: boolean;
+  publicUrl: string | null;
+  lanAddresses: string[];
   minPlayers: number;
   maxPlayers: number;
 }

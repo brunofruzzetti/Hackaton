@@ -1,6 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { RUINA_MAX_AI, type RuinaState } from "@shared/index";
 import type { RuinaSelf, RuinaSocket } from "../hooks/useRuinaSocket";
+import { fetchPublicConfig, type PublicConfig } from "../lib/api";
 import type { Session } from "../lib/session";
 import { BRUTAL } from "../lib/ui";
 import { PortalScene } from "./PortalScene";
@@ -14,6 +16,18 @@ interface LobbyProps {
   socket: RuinaSocket;
   initialCode: string | null;
   supabaseRealtime: { configured: boolean; connected: boolean };
+}
+
+function buildShareLink(code: string, config: PublicConfig | null): string {
+  const publicBase = config?.publicUrl?.replace(/\/+$/, "");
+  if (publicBase) return `${publicBase}/sala/${code}`;
+
+  const { protocol, hostname, port } = window.location;
+  const localHost = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+  const lan = config?.lanAddresses?.[0];
+  const host = localHost && lan ? lan : hostname;
+  const portPart = port ? `:${port}` : "";
+  return `${protocol}//${host}${portPart}/sala/${code}`;
 }
 
 function RealtimeBadge({ realtime }: { realtime: LobbyProps["supabaseRealtime"] }) {
@@ -39,6 +53,19 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
   const [nombre, setNombre] = useState("");
   const [code, setCode] = useState(initialCode ?? "");
   const [copied, setCopied] = useState(false);
+  const [publicConfig, setPublicConfig] = useState<PublicConfig | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchPublicConfig()
+      .then((config) => {
+        if (active) setPublicConfig(config);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (!room) {
     const cleanName = nombre.trim().replace(/\s+/g, " ");
@@ -217,7 +244,7 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
   const canStart = room.players.length >= 5 && room.players.length <= 8;
   const aiPlayers = room.players.filter((player) => player.isAi);
   const canAddAi = isHost && aiPlayers.length < RUINA_MAX_AI && room.players.length < 8;
-  const shareLink = `${window.location.origin}/sala/${room.code}`;
+  const shareLink = buildShareLink(room.code, publicConfig);
 
   async function copy(): Promise<void> {
     try {
@@ -267,6 +294,39 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
               >
                 {copied ? "COPIADO" : "COPIAR"}
               </button>
+            </div>
+          </div>
+
+          <div className="mt-2 grid gap-2 border-2 border-black bg-white p-2 shadow-[3px_3px_0_0_#000] sm:grid-cols-[auto_1fr] sm:items-center">
+            <div className="mx-auto border-2 border-black bg-[#fffdf7] p-1.5">
+              <QRCodeSVG
+                value={shareLink}
+                size={128}
+                bgColor="#fffdf7"
+                fgColor="#111827"
+                level="M"
+                title={`Entrar en la sala ${room.code} desde el móvil`}
+              />
+            </div>
+            <div className="min-w-0 text-center sm:text-left">
+              <p className="font-mono text-[10px] font-black uppercase tracking-wider">
+                📱 Escanea para entrar desde el móvil
+              </p>
+              <p className="mt-1 break-all font-mono text-[9px] leading-relaxed text-stone-500">
+                {shareLink}
+              </p>
+              <a
+                href={shareLink}
+                className="mt-1 inline-block border-2 border-black bg-[#38bdf8] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+              >
+                Abrir enlace
+              </a>
+              {shareLink.includes("localhost") && (
+                <p className="mt-1 font-mono text-[8px] font-bold uppercase text-[#b91c1c]">
+                  Configura PUBLIC_URL o abre el juego por la IP de tu red para que el QR funcione
+                  en el móvil.
+                </p>
+              )}
             </div>
           </div>
         </section>

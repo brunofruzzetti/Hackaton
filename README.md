@@ -54,6 +54,8 @@ encubiertos** intentan colar sabotajes sin que se note.
 
 ## Arranque
 
+### Desarrollo
+
 ```bash
 npm install
 cp .env.example .env       # Windows: copy .env.example .env
@@ -63,6 +65,44 @@ npm run dev
 - Cliente: `http://localhost:5173`
 - Servidor: `http://localhost:3001`
 - WebSocket: `ws://localhost:3001/ws`
+
+### Web de producción
+
+```bash
+npm run build
+npm start
+```
+
+El servidor Fastify sirve también `client/dist` en `http://localhost:3001`, con el mismo
+WebSocket y las mismas rutas `/api`, así que se puede jugar desde una sola URL.
+
+## Jugar desde el móvil con QR
+
+1. Ordenador y móvil en la **misma red Wi-Fi**.
+2. Abre el juego en el ordenador con `npm run dev` o con `npm run build && npm start`.
+3. Crea una sala. El lobby muestra un **QR** y el enlace de red.
+4. Escanea el QR con el móvil y escribe tu nombre para unirte.
+
+El QR usa automáticamente una IP LAN detectada por el servidor (por ejemplo
+`http://172.18.47.42:3001/sala/ABCD`). Si el QR sigue apuntando a `localhost`, configura:
+
+```bash
+PUBLIC_URL=http://192.168.1.50:3001
+```
+
+Para un enlace público o para activar el micrófono en móvil hace falta **HTTPS** (los
+navegadores no permiten `getUserMedia` desde una IP HTTP). Puedes usar un túnel:
+
+```bash
+cloudflared tunnel --url http://localhost:3001
+```
+
+y poner la URL del túnel en `PUBLIC_URL`. Si quieres voz móvil, configura también
+`LIVEKIT_PUBLIC_URL` con la URL pública de LiveKit. Sin HTTPS, **el chat de texto sigue
+funcionando**.
+
+Abre los puertos `3001`, `5173` y `7880` en el firewall si el móvil no carga el QR o no
+conecta el audio.
 
 `server` y `client` cargan el `.env` de la raíz (`envDir: ".."` en Vite y `dotenv` con
 `[".env", "../.env"]` en el servidor).

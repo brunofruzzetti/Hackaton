@@ -37,7 +37,8 @@ fueron eliminados.
 - `server/src/supabaseMirror.ts`: espejo best-effort a Supabase (`salas`/`jugadores`).
 - `server/src/livekit.ts`: JWT de LiveKit.
 - `server/src/index.ts`: Fastify (health, config, token, reloj de timers y WS).
-- `client/src/components/Lobby.tsx`: crear/unirse, tablón, código y lista de conectados.
+- `client/src/components/Lobby.tsx`: crear/unirse, tablón, código, QR de acceso móvil y lista
+  de conectados.
 - `client/src/components/JuntaHeader.tsx`: sellos Bo3, llave del portal, fase y calaveras.
 - `client/src/components/PlayerCredential.tsx`: credencial privada plegable y post-it.
 - `client/src/components/NeighborBoard.tsx`: tablero de buzones 2/4 columnas.
@@ -108,6 +109,9 @@ fueron eliminados.
 - Voz: el micro solo se pide tras pulsar `ENTRAR EN LA VOZ`; el chat de texto es siempre el
   respaldo. La escena del portal muestra las sillas y la mesa frontal presidente/vocal.
 - Mobile-first: 390 px primero, botones grandes, Tailwind, sin hover como única affordance.
+- Acceso móvil: el lobby genera un QR con `qrcode.react`; usa `PUBLIC_URL` si se despliega
+  detrás de un túnel y `LIVEKIT_PUBLIC_URL` para voz móvil por HTTPS. No hardcodear
+  `localhost` en enlaces compartidos.
 - Estilo visual: tablón de vecinos + neobrutalismo (papel `#f4efe6`, bordes negros, sombras
   sólidas, post-its, sellos y carpetas), centralizado en `client/src/lib/ui.ts` y
   `styles.css`.

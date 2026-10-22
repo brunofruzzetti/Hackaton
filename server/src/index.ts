@@ -1,3 +1,7 @@
+import { existsSync } from "node:fs";
+import { networkInterfaces } from "node:os";
+import { fileURLToPath } from "node:url";
+import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
 import { z } from "zod";
 import { RUINA_MAX_PLAYERS, RUINA_MIN_PLAYERS } from "@shared/index";
@@ -7,6 +11,23 @@ import { createLivekitToken, getLivekitConfigFromEnv } from "./livekit.js";
 import { RuinaStore } from "./ruinaStore.js";
 import { RuinaWsHub } from "./ruinaWs.js";
 import { getSupabaseMirrorFromEnv } from "./supabaseMirror.js";
+
+function lanScore(address: string): number {
+  if (address.startsWith("192.168.")) return 0;
+  if (address.startsWith("10.")) return 1;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(address)) return 2;
+  return 3;
+}
+
+function lanAddresses(): string[] {
+  const addresses = new Set<string>();
+  for (const entries of Object.values(networkInterfaces())) {
+    for (const entry of entries ?? []) {
+      if (entry.family === "IPv4" && !entry.internal) addresses.add(entry.address);
+    }
+  }
+  return [...addresses].sort((a, b) => lanScore(a) - lanScore(b));
+}
 
 const app = Fastify({ logger: true });
 const store = new RuinaStore();
@@ -23,8 +44,10 @@ app.get("/api/health", async () => ({
 
 app.get("/api/config", async () => ({
   livekitConfigured,
-  livekitUrl: livekitConfigured ? (env.LIVEKIT_URL ?? null) : null,
+  livekitUrl: livekitConfigured ? (env.LIVEKIT_PUBLIC_URL ?? env.LIVEKIT_URL ?? null) : null,
   supabaseConfigured,
+  publicUrl: env.PUBLIC_URL || null,
+  lanAddresses: lanAddresses(),
   minPlayers: RUINA_MIN_PLAYERS,
   maxPlayers: RUINA_MAX_PLAYERS,
 }));
@@ -37,6 +60,24 @@ app.get("/api/debug/room/:code", async (request, reply) => {
     return reply.code(404).send({ error: "ROOM_NOT_FOUND" });
   }
 });
+
+function livekitUrlForOrigin(configuredUrl: string, origin: string | undefined): string {
+  if (env.LIVEKIT_PUBLIC_URL) return env.LIVEKIT_PUBLIC_URL;
+  if (!origin) return configuredUrl;
+  try {
+    const configured = new URL(configuredUrl);
+    const requestOrigin = new URL(origin);
+    const configuredIsLocal =
+      configured.hostname === "localhost" || configured.hostname === "127.0.0.1";
+    const originIsLocal =
+      requestOrigin.hostname === "localhost" || requestOrigin.hostname === "127.0.0.1";
+    if (!configuredIsLocal || originIsLocal) return configuredUrl;
+    const port = configured.port || "7880";
+    return `${configured.protocol}//${requestOrigin.hostname}:${port}`;
+  } catch {
+    return configuredUrl;
+  }
+}
 
 const tokenBodySchema = z.object({
   code: z.string().trim().toUpperCase().regex(/^[A-Z]{4}$/),
@@ -66,7 +107,10 @@ app.post("/api/livekit/token", async (request, reply) => {
       code: parsed.data.code,
       playerId: player.id,
       playerName: player.nombre,
-      config,
+      config: {
+        ...config,
+        url: livekitUrlForOrigin(config.url, request.headers.origin),
+      },
     });
     console.log(`[ruina/livekit] Token para ${player.nombre} en ${result.roomName}`);
     return result;
@@ -80,6 +124,19 @@ app.post("/api/livekit/token", async (request, reply) => {
     return reply.code(500).send({ error: "SERVER_ERROR", message: "No se pudo generar el token." });
   }
 });
+
+const clientDist = fileURLToPath(new URL("../../client/dist/", import.meta.url));
+
+if (existsSync(clientDist)) {
+  await app.register(fastifyStatic, { root: clientDist, prefix: "/" });
+  app.setNotFoundHandler((request, reply) => {
+    const url = request.raw.url ?? "/";
+    if (url.startsWith("/api") || url.startsWith("/ws")) {
+      return reply.code(404).send({ error: "NOT_FOUND" });
+    }
+    return reply.sendFile("index.html");
+  });
+}
 
 const clock = setInterval(() => {
   for (const code of store.tick()) {

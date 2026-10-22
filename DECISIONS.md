@@ -368,6 +368,14 @@ entran en el reparto de bandos/secretos y actúan en servidor una vez por tick: 
 tienen la presidencia, votan con probabilidad según bando y firman (sabotaje probabilístico
 si son deshonestas). No tienen socket ni chat; el estado público las marca con `isAi`.
 
+### D-115 · Acceso por QR y servidor web único
+El lobby muestra un QR generado en cliente con `qrcode.react`. El enlace prioriza
+`PUBLIC_URL`; si no existe, usa la IP LAN detectada por `/api/config` cuando el navegador
+está en localhost, y conserva el origen cuando ya se entra por red. El servidor Fastify
+sirve `client/dist` en producción (`npm start`), de modo que la web de ordenador y el móvil
+comparten `http://<host>:3001`, WebSocket y `/api`. Para micrófono móvil se documenta el
+requisito de HTTPS/túnel y `LIVEKIT_PUBLIC_URL`; sin HTTPS queda el chat.
+
 ### D-114 · Revancha y pantalla de error
 Al terminar la partida, el anfitrión puede volver al lobby conservando los asientos y las IAs
 para jugar otra partida. La UI se envuelve en un `ErrorBoundary` que muestra un acta de error
