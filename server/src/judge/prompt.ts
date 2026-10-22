@@ -67,7 +67,7 @@ export function buildJudgePrompt(input: JudgeRoundInput): {
     "- El conserje y el okupa son roles discretos: no les penalices por hablar poco si cumplen su cliché.",
     "- Evalúa exactamente las tareas asignadas a cada jugador. No inventes tareas.",
     "- Para marcar una tarea como cumplida, debe haber evidencia en la transcripción. Cita un fragmento literal y corto.",
-    "- No calcules total_pct ni dinero: el servidor lo hará con tus notas.",
+    "- No calcules puntos ni totales: el servidor sumará los puntos de tareas y el bonus de rol.",
     "",
     "Para cada jugador devuelve:",
     "- playerId",

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { TranscriptEntry } from "@shared/index";
 import { MockLlmService } from "./llm.js";
 import { buildNeighborPrompt } from "./prompt.js";
-import { estimateSpeechMs, getAiVoiceProfile } from "./voices.js";
+import { estimateTextDisplayMs } from "./textTiming.js";
 
 const transcript: TranscriptEntry[] = [
   {
@@ -91,12 +91,9 @@ describe("LLM mock", () => {
   });
 });
 
-describe("voces IA", () => {
-  it("genera perfiles distintos y una duración de TTS positiva", () => {
-    const a = getAiVoiceProfile(0, "Manoli");
-    const b = getAiVoiceProfile(1, "Paco");
-    expect(a.pitch).not.toBe(b.pitch);
-    expect(a.label).toContain("Manoli");
-    expect(estimateSpeechMs("Hola vecinos")).toBeGreaterThan(500);
+describe("texto IA", () => {
+  it("calcula una duración de 'escribiendo' positiva y limitada", () => {
+    expect(estimateTextDisplayMs("Hola vecinos")).toBeGreaterThan(1000);
+    expect(estimateTextDisplayMs("x".repeat(1000))).toBeLessThanOrEqual(6000);
   });
 });

@@ -9,7 +9,6 @@ import {
   type ServerErrorCode,
   type ServerMessage,
   type TranscriptEntry,
-  type VoiceProfile,
 } from "@shared/index";
 import { GameError } from "./errors.js";
 import type { RoomStore } from "./roomStore.js";
@@ -191,11 +190,6 @@ export class WsHub {
           this.sendTasks(session.code);
           return;
         }
-        case "buy_item": {
-          this.store.buyItem(session.code, session.playerId, message.itemId);
-          this.broadcastRoom(session.code);
-          return;
-        }
         case "chat": {
           const entry = this.store.chat(session.code, session.playerId, message.text);
           this.broadcast(session.code, { type: "transcript_append", entry });
@@ -208,13 +202,6 @@ export class WsHub {
             message.speaking,
           );
           if (changed) {
-            if (message.speaking) {
-              // Un humano toma la palabra: los clientes deben cortar el TTS de la IA.
-              this.broadcast(session.code, {
-                type: "tts_cancel",
-                reason: "human_speaking",
-              });
-            }
             this.broadcastRoom(session.code);
           }
           return;
@@ -290,40 +277,30 @@ export class WsHub {
     this.broadcastRoom(code);
   }
 
-  broadcastNeighborSays(
+  broadcastNeighborText(
     code: string,
     entry: TranscriptEntry,
     playerId: string,
     roleId: RoleId,
-    voice: VoiceProfile,
   ): void {
     this.broadcast(code, {
-      type: "neighbor_says",
+      type: "neighbor_text",
       entry,
       playerId,
       roleId,
-      voice,
     });
-  }
-
-  broadcastTtsCancel(
-    code: string,
-    reason: "human_speaking" | "phase_change" | "server",
-  ): void {
-    this.broadcast(code, { type: "tts_cancel", reason });
   }
 
   broadcastCommunityEvent(code: string, event: CommunityEvent): void {
     this.broadcast(code, { type: "community_event", event });
   }
 
-  broadcastJudgeSays(
+  broadcastJudgeText(
     code: string,
     text: string,
     kind: "order" | "result" | "event",
-    voice: VoiceProfile,
   ): void {
-    this.broadcast(code, { type: "judge_says", text, kind, voice });
+    this.broadcast(code, { type: "judge_text", text, kind });
   }
 
   broadcastRoundResults(code: string, result: RoundResult): void {

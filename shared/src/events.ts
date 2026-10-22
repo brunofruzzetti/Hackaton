@@ -8,7 +8,6 @@ import type {
   RoundResult,
   SelfState,
   TranscriptEntry,
-  VoiceProfile,
 } from "./types.js";
 
 const displayNameSchema = z
@@ -44,7 +43,6 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("start_discussion") }),
   z.object({ type: z.literal("end_discussion") }),
   z.object({ type: z.literal("next_round") }),
-  z.object({ type: z.literal("buy_item"), itemId: z.string().min(1).max(40) }),
   z.object({
     type: z.literal("chat"),
     text: z.string().trim().min(1, "Mensaje vacío").max(280, "Máximo 280 caracteres"),
@@ -92,19 +90,16 @@ export type ServerMessage =
   | { type: "community_event"; event: CommunityEvent }
   | { type: "round_results"; result: RoundResult }
   | {
-      type: "neighbor_says";
+      type: "neighbor_text";
       entry: TranscriptEntry;
       playerId: string;
       roleId: RoleId;
-      voice: VoiceProfile;
     }
   | {
-      type: "judge_says";
+      type: "judge_text";
       text: string;
       kind: "order" | "result" | "event";
-      voice: VoiceProfile;
     }
-  | { type: "tts_cancel"; reason: "human_speaking" | "phase_change" | "server" }
   | { type: "error"; code: ServerErrorCode; message: string }
   | { type: "notice"; message: string }
   | { type: "pong"; at: number };

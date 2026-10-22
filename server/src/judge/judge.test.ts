@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SCORING_CONFIG, type PlayerTask, type TranscriptEntry } from "@shared/index";
+import type { PlayerTask, TranscriptEntry } from "@shared/index";
 import { MockJudgeService } from "./index.js";
 import { buildJudgePrompt, type JudgeRoundInput } from "./prompt.js";
 import { computeRoundResult } from "./scoring.js";
@@ -104,7 +104,7 @@ describe("juez de ronda", () => {
     expect(parsed.success).toBe(true);
   });
 
-  it("calcula taskScore y total_pct en servidor, restando avisos de orden", () => {
+  it("calcula puntos de tareas y bonus de rol en servidor", () => {
     const result = computeRoundResult(input, {
       players: [
         {
@@ -127,11 +127,12 @@ describe("juez de ronda", () => {
 
     expect(result.players).toHaveLength(1);
     const player = result.players[0];
-    expect(player?.taskScore).toBe(100);
+    expect(player?.taskPoints).toBe(4);
+    expect(player?.taskPointsPossible).toBe(4);
     expect(player?.scores.participacion).toBe(70);
-    // 50 + 16 + 10.5 + 6 + 2 = 84.5 -> 85
-    expect(player?.totalPct).toBe(85);
-    expect(player?.money).toBe(85 * SCORING_CONFIG.MONEY_PER_PERCENT);
+    // Rubric: 80*.4 + 70*.2 + 60*.2 + 40*.2 = 66 -> bonus 3 de 5
+    expect(player?.roleBonus).toBe(3);
+    expect(player?.totalPoints).toBe(7);
     expect(player?.tasks[0]?.taskText).toBe("Suelta un rumor.");
     expect(player?.orderWarnings).toBe(1);
   });

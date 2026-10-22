@@ -14,7 +14,6 @@ import {
   saveSession,
   type Session,
 } from "../lib/session";
-import { tts } from "../lib/tts";
 
 export type ConnectionStatus =
   | "idle"
@@ -63,7 +62,6 @@ export interface GameSocket {
   startDiscussion: () => void;
   endDiscussion: () => void;
   nextRound: () => void;
-  buyItem: (itemId: string) => void;
   sendChat: (text: string) => void;
   setSpeaking: (speaking: boolean) => void;
   leave: () => void;
@@ -206,23 +204,17 @@ export function useGameSocket(): GameSocket {
         // El room_state posterior incluye el resultado completo.
         break;
       }
-      case "neighbor_says": {
+      case "neighbor_text": {
         appendTranscriptEntry(message.entry);
-        tts.speak(message.entry.text, message.voice);
         break;
       }
-      case "judge_says": {
-        tts.speak(message.text, message.voice);
+      case "judge_text": {
         setJudgeMessage(message.text);
         if (judgeTimerRef.current !== null) window.clearTimeout(judgeTimerRef.current);
         judgeTimerRef.current = window.setTimeout(() => {
           judgeTimerRef.current = null;
           setJudgeMessage(null);
-        }, 6000);
-        break;
-      }
-      case "tts_cancel": {
-        tts.cancel();
+        }, 7000);
         break;
       }
       case "error": {
@@ -275,7 +267,6 @@ export function useGameSocket(): GameSocket {
         window.clearTimeout(judgeTimerRef.current);
         judgeTimerRef.current = null;
       }
-      tts.cancel();
       const socket = socketRef.current;
       socketRef.current = null;
       sessionRef.current = null;
@@ -298,7 +289,6 @@ export function useGameSocket(): GameSocket {
   }
 
   function createRoom(name: string): void {
-    tts.prime();
     clearSession();
     sessionRef.current = null;
     applyRoom(null);
@@ -311,7 +301,6 @@ export function useGameSocket(): GameSocket {
   }
 
   function joinRoom(code: string, name: string): void {
-    tts.prime();
     clearSession();
     sessionRef.current = null;
     applyRoom(null);
@@ -332,12 +321,10 @@ export function useGameSocket(): GameSocket {
   }
 
   function startGame(): void {
-    tts.prime();
     sendAction({ type: "start_game" });
   }
 
   function startDiscussion(): void {
-    tts.prime();
     sendAction({ type: "start_discussion" });
   }
 
@@ -347,10 +334,6 @@ export function useGameSocket(): GameSocket {
 
   function nextRound(): void {
     sendAction({ type: "next_round" });
-  }
-
-  function buyItem(itemId: string): void {
-    sendAction({ type: "buy_item", itemId });
   }
 
   function sendChat(text: string): void {
@@ -381,7 +364,6 @@ export function useGameSocket(): GameSocket {
     }
     sessionRef.current = null;
     clearSession();
-    tts.cancel();
     applyRoom(null);
     setYou(null);
     setSession(null);
@@ -410,7 +392,6 @@ export function useGameSocket(): GameSocket {
     startDiscussion,
     endDiscussion,
     nextRound,
-    buyItem,
     sendChat,
     setSpeaking,
     leave,

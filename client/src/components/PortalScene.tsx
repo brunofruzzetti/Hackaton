@@ -36,7 +36,7 @@ const PHASE_LABEL: Record<RoomState["phase"], string> = {
   ROLES: "Reparto",
   DISCUSSION: "Discusión",
   JUDGMENT: "Juicio",
-  RESULTS_SHOP: "Resultados",
+  RESULTS: "Resultados",
 };
 
 export function PortalScene({ room, speakingIds, countdown, judgeMessage }: PortalSceneProps) {

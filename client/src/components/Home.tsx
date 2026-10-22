@@ -92,8 +92,8 @@ export function Home({ initialCode, onCreate, onJoin }: HomeProps) {
         <ol className="steps">
           <li>Se crea una sala y se reparten roles cliché sin repetir.</li>
           <li>Los vecinos IA y los humanos discuten una propuesta de la comunidad.</li>
-          <li>El juez puntúa lo bien que has interpretado tu papel y ese % es dinero.</li>
-          <li>Tras 3 rondas gana el piso con más valor.</li>
+          <li>El juez puntúa tus tareas y lo bien que interpretas tu papel: ganas puntos.</li>
+          <li>Tras 3 rondas gana quien tenga más puntos.</li>
         </ol>
       </section>
     </div>

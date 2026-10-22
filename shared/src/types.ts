@@ -2,7 +2,7 @@ import type { CommunityEvent } from "./communityEvents.js";
 import type { PresidentStyleId, RoleId } from "./roles.js";
 
 /** Fases de una ronda. El orden está fijado por el servidor. */
-export type Phase = "LOBBY" | "ROLES" | "DISCUSSION" | "JUDGMENT" | "RESULTS_SHOP";
+export type Phase = "LOBBY" | "ROLES" | "DISCUSSION" | "JUDGMENT" | "RESULTS";
 
 export type PlayerKind = "human" | "ai";
 
@@ -20,14 +20,10 @@ export interface PlayerState {
   silencedUntil: number | null;
   /** Hito 5: avisos de orden acumulados en la ronda. */
   orderWarnings: number;
-  /** Dinero acumulado tras las rondas juzgadas. */
-  money: number;
-  /** Último porcentaje obtenido, si ya ha sido juzgado. */
-  lastPct: number | null;
-  /** Objetos comprados en la tienda, en orden de compra. */
-  purchasedItems: string[];
-  /** Valor de estilo del piso con rendimientos decrecientes. */
-  apartmentValue: number;
+  /** Puntos acumulados por tareas y rol en las rondas juzgadas. */
+  totalPoints: number;
+  /** Puntos obtenidos en la última ronda juzgada. */
+  lastRoundPoints: number | null;
 }
 
 export type TranscriptSource = "voice" | "chat" | "ai" | "system";
@@ -40,17 +36,6 @@ export interface TranscriptEntry {
   roleId: RoleId | null;
   text: string;
   source: TranscriptSource;
-}
-
-/** Perfil de voz que el cliente aplica con speechSynthesis. */
-export interface VoiceProfile {
-  /** Índice para elegir entre las voces disponibles del navegador. */
-  voiceIndex: number;
-  pitch: number;
-  rate: number;
-  volume: number;
-  /** Etiqueta para depuración/UI (p. ej. "IA · Manoli"). */
-  label: string;
 }
 
 /** Estado completo que recibe el cliente. */
@@ -93,10 +78,14 @@ export interface PlayerRoundResult {
   playerName: string;
   roleId: RoleId | null;
   tasks: TaskEvaluation[];
-  taskScore: number;
+  /** Puntos de tareas conseguidos / posibles en la ronda. */
+  taskPoints: number;
+  taskPointsPossible: number;
+  /** Bonus de interpretación 0-5 calculado desde las notas del juez. */
+  roleBonus: number;
+  /** Puntuación final de la ronda: taskPoints + roleBonus. */
+  totalPoints: number;
   scores: JudgeScores;
-  totalPct: number;
-  money: number;
   evidencia: string;
   comentarioGracioso: string;
   orderWarnings: number;

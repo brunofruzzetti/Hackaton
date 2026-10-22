@@ -38,21 +38,22 @@ export const JUDGE_CONFIG = {
 } as const;
 
 export const AI_CONFIG = {
-  /** Silencio humano mínimo antes de que hable una IA (ms). */
+  /** Silencio humano mínimo antes de que una IA publique texto (ms). */
   SILENCE_AFTER_HUMAN_MS: 2500,
-  /** Tiempo mínimo entre dos intervenciones de IA (ms). */
-  MIN_GAP_MS: 9000,
+  /** Tiempo mínimo entre dos mensajes de IA (ms). */
+  MIN_GAP_MS: 15000,
   /** Máximo de intervenciones por IA y ronda. */
-  MAX_TURNS_PER_ROUND: 3,
+  MAX_TURNS_PER_ROUND: 2,
   /** Líneas de transcripción que recibe el modelo como contexto. */
   CONTEXT_LINES: 16,
   /** Longitud máxima de una intervención IA (caracteres). */
-  MAX_LINE_CHARS: 320,
+  MAX_LINE_CHARS: 240,
   /** Límite de espera de la generación (ms). */
   GENERATION_TIMEOUT_MS: 20000,
-  /** Duración estimada de TTS: base + por carácter (ms). */
-  TTS_BASE_MS: 700,
-  TTS_PER_CHAR_MS: 55,
+  /** Tiempo que el texto de la IA cuenta como "hablando" para el juez (ms). */
+  DISPLAY_BASE_MS: 2200,
+  DISPLAY_PER_CHAR_MS: 22,
+  DISPLAY_MAX_MS: 6000,
 } as const;
 
 export const TASK_CONFIG = {
@@ -75,16 +76,18 @@ export const TASK_CONFIG = {
 } as const;
 
 export const SCORING_CONFIG = {
-  /** Pesos de la media ponderada que calcula el servidor (suman 1). */
-  WEIGHTS: {
-    tareas: 0.5,
-    fidelidad_cliche: 0.2,
-    participacion: 0.15,
-    creatividad: 0.1,
-    reaccion_a_otros: 0.05,
+  /**
+   * Puntuación por ronda:
+   * - Puntos de tareas: 1/2/3 según dificultad, sumados en servidor.
+   * - Bonus de rol: 0-5 puntos según la media ponderada del juez.
+   */
+  ROLE_BONUS_MAX: 5,
+  RUBRIC_WEIGHTS: {
+    fidelidad_cliche: 0.4,
+    participacion: 0.2,
+    creatividad: 0.2,
+    reaccion_a_otros: 0.2,
   },
-  /** Dinero ganado por cada punto porcentual. */
-  MONEY_PER_PERCENT: 10,
 } as const;
 
 export const AUDIO_CONFIG = {
@@ -94,8 +97,6 @@ export const AUDIO_CONFIG = {
   MAX_CLIP_MS: 30000,
   /** Tamaño máximo de un clip subido (bytes). */
   MAX_CLIP_BYTES: 10 * 1024 * 1024,
-  /** Volumen bajo para la megafonía del juez y los vecinos IA. */
-  TTS_VOLUME: 0.85,
 } as const;
 
 /** Propuestas posibles de la comunidad. */

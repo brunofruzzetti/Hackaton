@@ -22,7 +22,6 @@ export function App() {
           onStartDiscussion={game.startDiscussion}
           onEndDiscussion={game.endDiscussion}
           onNextRound={game.nextRound}
-          onBuyItem={game.buyItem}
           onLeave={game.leave}
           onSendChat={game.sendChat}
           onSpeakingChange={game.setSpeaking}

@@ -1,21 +1,22 @@
-# Pruebas del Hito 6 — Juez final, puntuación y dinero
+# Pruebas del Hito 6 — Juez final y puntuación por tareas
 
 ## Qué evalúa
 
 - Las 4 tareas privadas de cada humano (cumplida / no cumplida + evidencia).
 - Fidelidad al cliché, participación, creatividad y reacción a otros.
 - Avisos de orden del juez moderador.
-- No hay voto de jugadores para decidir el resultado.
+- No hay voto de jugadores ni monedas.
 
-El modelo devuelve notas y tareas; **el servidor** calcula:
+El modelo devuelve notas y el estado de cada tarea; **el servidor** calcula:
 
 ```
-total_pct = 50% tareas + 20% fidelidad + 15% participación
-          + 10% creatividad + 5% reacción
-dinero = round(total_pct * 10)
+puntos de tareas = suma de puntos (1 fácil, 2 media, 3 difícil) de las tareas cumplidas
+bonus de rol     = 0-5 según la media ponderada de las notas del juez
+puntos ronda     = puntos de tareas + bonus de rol
 ```
 
-La participación baja 10 puntos por cada aviso de orden (mínimo 0).
+La participación baja 10 puntos por cada aviso de orden (mínimo 0). La puntuación se acumula
+durante las 3 rondas; gana quien tenga más puntos.
 
 ## Manual
 
@@ -24,22 +25,21 @@ La participación baja 10 puntos por cada aviso de orden (mínimo 0).
 3. El anfitrión pulsa **Terminar discusión ahora** (o espera los 4 minutos).
 4. Durante unos segundos verás **El juez está deliberando**.
 5. Al terminar:
-   - Tarjeta del acta por jugador con % y dinero.
+   - Tarjeta del acta por jugador con puntos y desglose.
    - Tareas con ✓/✗ y cita de evidencia.
+   - “X/Y por tareas + Z por rol”.
    - Notas de cliché, participación, creatividad y reacción.
    - Comentario gracioso y cita del acta.
-   - Ranking por dinero/valor del piso.
-6. El juez lee un resumen breve por TTS; el resto queda en pantalla.
-7. Pulsa **Siguiente ronda**. Se reparte una agenda nueva sin repetir tareas y cambia el
+   - Clasificación por puntos acumulados.
+6. Pulsa **Siguiente ronda**. Se reparte una agenda nueva sin repetir tareas y cambia el
    suceso.
-8. Tras la tercera ronda aparece el ganador provisional por valor del piso. La tienda sigue
-   abierta y el ganador puede cambiar al amueblar.
+7. Tras la tercera ronda aparece el ganador por puntos totales.
 
 ## Sin clave de DeepSeek
 
 Si no hay `DEEPSEEK_API_KEY` o `LLM_PROVIDER=mock`, se usa un juez mock heurístico para no
 bloquear la partida. Marca tareas según cuántas intervenciones tiene cada jugador y genera
-notas de ejemplo. El flujo de UI, dinero y rondas es idéntico.
+notas de ejemplo. El flujo de UI, puntos y rondas es idéntico.
 
 ## Limitaciones
 

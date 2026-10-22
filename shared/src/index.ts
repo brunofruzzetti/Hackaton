@@ -5,4 +5,3 @@ export * from "./events.js";
 export * from "./composition.js";
 export * from "./tasks.js";
 export * from "./communityEvents.js";
-export * from "./shop.js";

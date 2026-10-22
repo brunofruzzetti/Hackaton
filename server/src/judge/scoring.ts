@@ -29,15 +29,16 @@ function evidenceExists(transcript: readonly TranscriptEntry[], evidence: string
 }
 
 /**
- * Calcula el resultado de la ronda en servidor. El modelo solo aporta notas y
- * el estado de cada tarea; aquí se aplican pesos, avisos y dinero.
+ * Puntuación por ronda calculada en servidor:
+ *   puntos de tareas (1/2/3 según dificultad) + bonus de rol (0-5).
+ * El modelo solo aporta el estado de cada tarea y las notas 0-100.
  */
 export function computeRoundResult(
   input: JudgeRoundInput,
   judge: JudgeResponse,
 ): RoundResult {
   const judgeByPlayer = new Map(judge.players.map((player) => [player.playerId, player]));
-  const weights = SCORING_CONFIG.WEIGHTS;
+  const rubricWeights = SCORING_CONFIG.RUBRIC_WEIGHTS;
 
   const players: PlayerRoundResult[] = input.players.map((player) => {
     const judged = judgeByPlayer.get(player.id);
@@ -52,12 +53,11 @@ export function computeRoundResult(
       };
     });
 
-    const possible = player.tasks.reduce((total, task) => total + task.points, 0);
-    const earned = player.tasks.reduce((total, task) => {
+    const taskPointsPossible = player.tasks.reduce((total, task) => total + task.points, 0);
+    const taskPoints = player.tasks.reduce((total, task) => {
       const result = taskResults.find((item) => item.taskId === task.id);
       return result?.cumplida ? total + task.points : total;
     }, 0);
-    const taskScore = possible > 0 ? clampScore((earned / possible) * 100) : 0;
 
     const rawScores = judged?.scores ?? {
       fidelidad_cliche: 0,
@@ -72,14 +72,17 @@ export function computeRoundResult(
     const creatividad = clampScore(rawScores.creatividad);
     const reaccion = clampScore(rawScores.reaccion_a_otros);
 
-    const totalPct = clampScore(
-      taskScore * weights.tareas +
-        fidelidad * weights.fidelidad_cliche +
-        participacion * weights.participacion +
-        creatividad * weights.creatividad +
-        reaccion * weights.reaccion_a_otros,
+    const rubricPct = clampScore(
+      fidelidad * rubricWeights.fidelidad_cliche +
+        participacion * rubricWeights.participacion +
+        creatividad * rubricWeights.creatividad +
+        reaccion * rubricWeights.reaccion_a_otros,
     );
-    const money = Math.round(totalPct * SCORING_CONFIG.MONEY_PER_PERCENT);
+    const roleBonus = Math.max(
+      0,
+      Math.min(SCORING_CONFIG.ROLE_BONUS_MAX, Math.round((rubricPct / 100) * SCORING_CONFIG.ROLE_BONUS_MAX)),
+    );
+    const totalPoints = taskPoints + roleBonus;
 
     const bestTaskEvidence =
       taskResults.find((task) => task.cumplida && task.evidencia.length > 0)?.evidencia ?? "";
@@ -90,15 +93,16 @@ export function computeRoundResult(
       playerName: player.name,
       roleId: player.roleId,
       tasks: taskResults,
-      taskScore,
+      taskPoints,
+      taskPointsPossible,
+      roleBonus,
+      totalPoints,
       scores: {
         fidelidad_cliche: fidelidad,
         participacion,
         creatividad,
         reaccion_a_otros: reaccion,
       },
-      totalPct,
-      money,
       evidencia: evidencia.slice(0, 300),
       comentarioGracioso:
         judged?.comentario_gracioso || "El acta no recoge comentarios, pero el buzón está lleno.",
@@ -106,7 +110,7 @@ export function computeRoundResult(
     };
   });
 
-  players.sort((a, b) => b.totalPct - a.totalPct);
+  players.sort((a, b) => b.totalPoints - a.totalPoints);
 
   return {
     round: input.round,

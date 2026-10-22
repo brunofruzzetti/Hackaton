@@ -1,9 +1,9 @@
 # Junta de Vecinos
 
 Juego web multijugador por voz para hackathon. Cada jugador encarna un rol cliché de una
-comunidad de propietarios, discute una propuesta (por ejemplo, instalar un ascensor), y un
-juez IA puntúa lo bien que ha interpretado su papel. El porcentaje se convierte en dinero
-para amueblar el piso; tras 3 rondas gana el piso de mayor valor.
+comunidad de propietarios, discute una propuesta (por ejemplo, instalar un ascensor) y
+cumple tareas secretas. Un juez IA puntúa las tareas y la interpretación; tras 3 rondas
+gana quien acumula más puntos.
 
 ## Estado actual
 
@@ -12,11 +12,11 @@ para amueblar el piso; tras 3 rondas gana el piso de mayor valor.
 | 0 | Monorepo, scripts dev, docs, env | ✅ |
 | 1 | Salas, lobby WS, roles y composición validada | ✅ |
 | 2 | LiveKit, push-to-talk, STT, transcripción compartida | ✅ |
-| 3 | Vecinos IA + TTS + cola de turnos | ✅ |
+| 3 | Vecinos IA (solo texto) + cola de turnos | ✅ |
 | 4 | Tareas por ronda, sucesos, temporizador y portal 2D | ✅ |
 | 5 | Juez moderador en directo | ✅ |
-| 6 | Juez de final de ronda, tareas y dinero | ✅ |
-| 7 | Tienda, rendimientos decrecientes y edificio 2D | ✅ |
+| 6 | Juez de final de ronda, tareas y puntos | ✅ |
+| 7 | Tienda/monedas: descartado; puntuación por tareas | — |
 | 8 | Acciones de rol, sonidos, estadísticas, espectador y pulido | ⏳ |
 
 ## Requisitos
@@ -118,10 +118,11 @@ DEEPGRAM_API_KEY=...
 - Usan DeepSeek (`deepseek-chat`, `https://api.deepseek.com`) y hablan por turnos.
 - Solo toman la palabra si ningún humano está hablando, han pasado ~2,5 s desde la última
   intervención humana, no hay otra IA hablando y no ha hablado el juez.
-- Cada IA interviene como máximo **3 veces por ronda**.
-- El servidor emite `neighbor_says`; el cliente lo reproduce con `speechSynthesis`, con una
-  voz/pitch/rate distinto por rol.
-- Si un humano empieza a hablar, se cancela el TTS y se descarta la respuesta IA pendiente.
+- Cada IA interviene como máximo **2 veces por ronda**, con al menos 15 s entre mensajes.
+- **Las IA no hablan: publican texto.** El mensaje aparece en la transcripción y cuenta
+  como “hablando” durante unos segundos, de modo que también suma para el aviso del juez.
+- Si un humano empieza a hablar, se descarta la generación pendiente; el texto ya publicado
+  sigue visible hasta que termina su ventana.
 - Sin `DEEPSEEK_API_KEY` se puede usar `LLM_PROVIDER=mock` para probar el flujo completo.
 
 ```env
@@ -144,21 +145,15 @@ nombre.
   reciben una misión compartida y ven el nombre de su compañero.
 - Cada ronda lanza **4 sucesos de la comunidad** (de un total de 24), elegidos entre los
   que afectan a los roles presentes.
-- El juez final evalúa tareas + cliché + participación + creatividad + reacción. El servidor
-  calcula el total (50% tareas) y el dinero (`total_pct * 10`).
-- El juez moderador avisa y silencia 3 s si **4 humanos** hablan a la vez durante 2 s, con
-  cooldown de 15 s.
+- El juez final evalúa las tareas y la interpretación. El servidor suma:
+  **puntos de tareas (1/2/3 por dificultad) + bonus de rol (0-5)**.
+- No hay monedas ni tienda. La puntuación es directa y se acumula durante las 3 rondas.
+- El juez moderador avisa y silencia 3 s si **4 participantes** (humanos o IA publicando
+  texto) están activos a la vez durante 2 s, con cooldown de 15 s.
 - No hay voto de jugadores para decidir el ganador. El flag `votes` queda como trasfondo
   de propietario/no propietario.
-
-## Tienda y piso 2D
-
-- 10 objetos en 5 categorías, con precio y puntos de estilo.
-- Rendimientos decrecientes: el segundo objeto de la misma categoría da menos puntos.
-- El dinero de cada ronda se gasta en la tienda al ver los resultados.
-- El **Edificio Junta** muestra un piso por humano con los objetos comprados y su valor.
-- Tras 3 rondas gana el piso con más puntos de estilo. El portal 2D muestra a los vecinos
-  sentados por rol, el tablón de sucesos y el altavoz del juez.
+- El portal 2D muestra a los vecinos sentados por rol, el tablón de sucesos y el altavoz
+  del juez.
 
 ## HTTPS en desarrollo (obligatorio para el micrófono)
 
@@ -203,10 +198,9 @@ Abre la URL `https://...ngrok-free.app` en el móvil.
    mantienes pulsado el push-to-talk para dejar un clip transcrito y los vecinos IA
    intervienen cuando hay silencio. El chat de texto es el plan B.
 6. Cada jugador recibe 4 tareas secretas y la comunidad lanza 4 sucesos durante la ronda.
-7. Al acabar, el juez puntúa las tareas y las intervenciones; cada % se convierte en dinero.
-8. En **Resultados y tienda** amueblas tu piso con 10 objetos; los de la misma categoría
-   rinden menos.
-9. Tras 3 rondas, gana el piso con más puntos de estilo.
+7. Al acabar, el juez puntúa las tareas y la interpretación: puntos de tareas + bonus de rol.
+8. En **Resultados** ves el acta, el desglose y la clasificación acumulada.
+9. Tras 3 rondas, gana quien tenga más puntos.
 
 ## Endpoints
 
@@ -225,8 +219,7 @@ Abre la URL `https://...ngrok-free.app` en el móvil.
 - `DECISIONS.md`: decisiones tomadas ante ambigüedades.
 - `docs/hito-1.md`: pruebas de salas, lobby y composición.
 - `docs/hito-2.md`: pruebas de LiveKit, PTT y transcripción.
-- `docs/hito-3.md`: pruebas de vecinos IA, TTS y turnos.
+- `docs/hito-3.md`: pruebas de vecinos IA, texto y turnos.
 - `docs/hito-4.md`: tareas, sucesos y portal 2D.
 - `docs/hito-5.md`: juez moderador y silencio forzado.
-- `docs/hito-6.md`: juez final, puntuación y dinero.
-- `docs/hito-7.md`: tienda, rendimientos decrecientes y edificio 2D.
+- `docs/hito-6.md`: juez final y puntuación por tareas.

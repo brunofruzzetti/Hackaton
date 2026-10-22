@@ -2,7 +2,7 @@ import { JUDGE_CONFIG, JUDGE_SILENCE_PHRASES } from "@shared/index";
 import { getLivekitConfigFromEnv, muteJudgeTracks, unmuteJudgeTracks, type JudgeMuteTarget } from "./livekit.js";
 import type { Room, RoomPlayer, RoomStore } from "./roomStore.js";
 import type { WsHub } from "./wsHub.js";
-import { JUDGE_VOICE, estimateSpeechMs } from "./ai/voices.js";
+import { estimateTextDisplayMs } from "./ai/textTiming.js";
 
 /**
  * Juez omnipresente: no es un personaje del portal. Detecta 4+ humanos hablando
@@ -43,8 +43,9 @@ export class JudgeModerator {
     try {
       const now = Date.now();
       for (const room of this.store.getDiscussionRooms()) {
+        // Cuenta tanto la voz humana como el texto que está publicando una IA.
         const speakers = [...room.players.values()].filter(
-          (player) => player.kind === "human" && player.speaking && player.connected,
+          (player) => player.speaking && player.connected,
         );
 
         if (speakers.length < JUDGE_CONFIG.OVERLAP_SPEAKERS) {
@@ -72,13 +73,21 @@ export class JudgeModerator {
       JUDGE_SILENCE_PHRASES[0] ??
       "¡Orden en la sala!";
 
+    const humans = speakers.filter((speaker) => speaker.kind === "human");
+    const hasAiText = speakers.some((speaker) => speaker.kind === "ai");
+
     room.lastJudgeAt = now;
     room.overlapSince = 0;
-    room.judgeSpeakingUntil = now + estimateSpeechMs(phrase);
+    room.judgeSpeakingUntil = now + estimateTextDisplayMs(phrase);
 
-    for (const speaker of speakers) {
-      speaker.orderWarnings += 1;
-      speaker.silencedUntil = now + JUDGE_CONFIG.FORCE_MUTE_MS;
+    if (hasAiText) {
+      // El juez también corta el texto de las IA.
+      this.store.cancelAiSpeech(room.code);
+    }
+
+    for (const human of humans) {
+      human.orderWarnings += 1;
+      human.silencedUntil = now + JUDGE_CONFIG.FORCE_MUTE_MS;
     }
 
     this.store.addTranscriptEntry(room.code, {
@@ -90,15 +99,17 @@ export class JudgeModerator {
     });
 
     this.hub.broadcastRoomState(room.code);
-    this.hub.broadcastJudgeSays(room.code, phrase, "order", JUDGE_VOICE);
+    this.hub.broadcastJudgeText(room.code, phrase, "order");
 
     console.log(
-      `[judge] ${room.code}: ${speakers.length} hablantes a la vez. Aviso: "${phrase}" ` +
-        `(avisos: ${speakers.map((speaker) => `${speaker.name}=${speaker.orderWarnings}`).join(", ")})`,
+      `[judge] ${room.code}: ${speakers.length} participante(s) a la vez. Aviso: "${phrase}" ` +
+        `(avisos: ${humans.map((human) => `${human.name}=${human.orderWarnings}`).join(", ") || "solo IA"})`,
     );
 
-    void this.applyLivekitMute(room, speakers);
-    this.scheduleSilenceEnd(room.code, speakers.map((speaker) => speaker.id));
+    if (humans.length > 0) {
+      void this.applyLivekitMute(room, humans);
+      this.scheduleSilenceEnd(room.code, humans.map((human) => human.id));
+    }
   }
 
   private async applyLivekitMute(room: Room, speakers: RoomPlayer[]): Promise<void> {

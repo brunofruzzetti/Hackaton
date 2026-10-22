@@ -7,9 +7,7 @@ import {
   assignComboTask,
   assignRoles,
   buildTaskDeck,
-  computeApartmentValue,
   drawTaskHand,
-  getShopItem,
   pickPresidentStyle,
   planComposition,
   selectRoundEvents,
@@ -24,9 +22,7 @@ import {
   type RoundResult,
   type TranscriptEntry,
   type TranscriptSource,
-  type VoiceProfile,
 } from "@shared/index";
-import { getAiVoiceProfile } from "./ai/voices.js";
 import { GameError } from "./errors.js";
 
 /** Códigos sin vocales para evitar confusiones al dictarlos por voz. */
@@ -43,13 +39,9 @@ export interface RoomPlayer {
   speaking: boolean;
   silencedUntil: number | null;
   orderWarnings: number;
-  money: number;
-  lastPct: number | null;
-  purchasedItems: string[];
-  apartmentValue: number;
+  totalPoints: number;
+  lastRoundPoints: number | null;
   joinedAt: number;
-  /** Solo en IA: perfil de voz para speechSynthesis. */
-  voiceProfile: VoiceProfile | null;
 }
 
 export interface Room {
@@ -130,16 +122,13 @@ function makeHuman(name: string, isHost: boolean): RoomPlayer {
     speaking: false,
     silencedUntil: null,
     orderWarnings: 0,
-    money: 0,
-    lastPct: null,
-    purchasedItems: [],
-    apartmentValue: 0,
+    totalPoints: 0,
+    lastRoundPoints: null,
     joinedAt: Date.now(),
-    voiceProfile: null,
   };
 }
 
-function makeAi(name: string, aiIndex: number): RoomPlayer {
+function makeAi(name: string): RoomPlayer {
   return {
     id: `ai-${randomUUID()}`,
     name,
@@ -151,12 +140,9 @@ function makeAi(name: string, aiIndex: number): RoomPlayer {
     speaking: false,
     silencedUntil: null,
     orderWarnings: 0,
-    money: 0,
-    lastPct: null,
-    purchasedItems: [],
-    apartmentValue: 0,
+    totalPoints: 0,
+    lastRoundPoints: null,
     joinedAt: Date.now(),
-    voiceProfile: getAiVoiceProfile(aiIndex, name),
   };
 }
 
@@ -307,7 +293,7 @@ export class RoomStore {
     const usedNames = new Set([...room.players.values()].map((player) => player.name));
     const availableName = AI_NAMES.find((name) => !usedNames.has(name));
     const name = availableName ?? `Vecino IA ${aiCount + 1}`;
-    const player = makeAi(name, aiCount);
+    const player = makeAi(name);
     room.players.set(player.id, player);
     room.lastActivityAt = Date.now();
     console.log(`[rooms] IA "${name}" añadida a ${room.code} por el anfitrión`);
@@ -375,11 +361,9 @@ export class RoomStore {
     room.isGameOver = false;
     room.winnerId = null;
     for (const player of room.players.values()) {
-      player.money = 0;
-      player.lastPct = null;
+      player.totalPoints = 0;
+      player.lastRoundPoints = null;
       player.orderWarnings = 0;
-      player.purchasedItems = [];
-      player.apartmentValue = 0;
     }
     room.presidentStyleId = assignments.some((assignment) => assignment.roleId === "president")
       ? pickPresidentStyle()
@@ -463,7 +447,7 @@ export class RoomStore {
     if (!requester.isHost) {
       throw new GameError("NOT_HOST", "Solo el anfitrión puede pasar de ronda.");
     }
-    if (room.phase !== "RESULTS_SHOP") {
+    if (room.phase !== "RESULTS") {
       throw new GameError("NOT_IN_RESULTS", "Todavía no hay resultados que cerrar.");
     }
     if (room.isGameOver || room.round >= GAME_CONFIG.ROUNDS) {
@@ -518,14 +502,14 @@ export class RoomStore {
     const room = this.getRoomOrThrow(code);
     room.latestResult = result;
     room.judgePending = false;
-    room.phase = "RESULTS_SHOP";
+    room.phase = "RESULTS";
     room.discussionEndsAt = null;
 
     for (const playerResult of result.players) {
       const player = room.players.get(playerResult.playerId);
       if (!player) continue;
-      player.money += playerResult.money;
-      player.lastPct = playerResult.totalPct;
+      player.totalPoints += playerResult.totalPoints;
+      player.lastRoundPoints = playerResult.totalPoints;
     }
 
     if (room.round >= GAME_CONFIG.ROUNDS) {
@@ -533,57 +517,19 @@ export class RoomStore {
       this.recomputeWinner(room);
       const winner = room.winnerId ? room.players.get(room.winnerId) : null;
       console.log(
-        `[judge] Sala ${code}: fin de la partida. Ganador provisional: ${winner?.name ?? "nadie"} ` +
-          `(${winner?.apartmentValue ?? 0} puntos de piso)`,
+        `[judge] Sala ${code}: fin de la partida. Ganador: ${winner?.name ?? "nadie"} ` +
+          `(${winner?.totalPoints ?? 0} puntos)`,
       );
     }
 
     room.lastActivityAt = Date.now();
-    return room;
-  }
-
-  /** Compra un objeto en la tienda. Solo se puede comprar una vez por jugador. */
-  buyItem(code: string, playerId: string, itemId: string): Room {
-    const room = this.getRoomOrThrow(code);
-    const player = this.requirePlayer(room, playerId);
-    if (room.phase !== "RESULTS_SHOP") {
-      throw new GameError("NOT_IN_RESULTS", "La tienda solo está abierta al acabar la ronda.");
-    }
-    if (player.kind !== "human") {
-      throw new GameError("INVALID_REQUEST", "Los vecinos IA no tienen piso propio.");
-    }
-    const item = getShopItem(itemId);
-    if (!item) {
-      throw new GameError("INVALID_REQUEST", "Ese objeto no existe.");
-    }
-    if (player.purchasedItems.includes(item.id)) {
-      throw new GameError("INVALID_REQUEST", "Ya tienes ese objeto en tu piso.");
-    }
-    if (player.money < item.price) {
-      throw new GameError(
-        "INVALID_REQUEST",
-        `No te llega el dinero: necesitas ${item.price} € y tienes ${player.money} €.`,
-      );
-    }
-
-    player.money -= item.price;
-    player.purchasedItems.push(item.id);
-    player.apartmentValue = computeApartmentValue(player.purchasedItems);
-    if (room.isGameOver) {
-      this.recomputeWinner(room);
-    }
-    room.lastActivityAt = Date.now();
-    console.log(
-      `[shop] ${player.name}@${room.code} compró ${item.name} por ${item.price} € ` +
-        `(piso: ${player.apartmentValue} puntos, quedan ${player.money} €)`,
-    );
     return room;
   }
 
   private recomputeWinner(room: Room): void {
     const humans = [...room.players.values()].filter((player) => player.kind === "human");
     const winner = [...humans].sort(
-      (a, b) => b.apartmentValue - a.apartmentValue || b.money - a.money,
+      (a, b) => b.totalPoints - a.totalPoints || (b.lastRoundPoints ?? 0) - (a.lastRoundPoints ?? 0),
     )[0];
     room.winnerId = winner?.id ?? null;
   }
@@ -687,16 +633,24 @@ export class RoomStore {
     player.speaking = speaking;
     if (speaking) {
       room.lastHumanSpokeAt = Date.now();
-      // Un humano toma la palabra: se corta cualquier IA en curso.
-      this.cancelAiSpeech(room.code);
+      // Se descarta la generación pendiente, pero un texto ya publicado sigue
+      // contando como "hablando" para la detección de solapamiento del juez.
+      this.cancelAiGeneration(room.code);
     }
     return true;
   }
 
-  /**
-   * Cancela la IA que esté hablando o generando. Se llama cuando un humano empieza
-   * a hablar o cuando cambia la fase.
-   */
+  /** Invalida una generación de IA en curso sin borrar el texto ya publicado. */
+  cancelAiGeneration(code: string): Room | null {
+    const room = this.rooms.get(normalizeCode(code));
+    if (!room) return null;
+    room.aiGenerationToken += 1;
+    room.aiGenerationPending = false;
+    room.aiNextAttemptAt = 0;
+    return room;
+  }
+
+  /** Corta el texto IA que esté marcado como hablando (juez o fin de fase). */
   cancelAiSpeech(code: string): Room | null {
     const room = this.rooms.get(normalizeCode(code));
     if (!room) return null;
@@ -871,10 +825,8 @@ export class RoomStore {
           speaking: player.speaking,
           silencedUntil: player.silencedUntil,
           orderWarnings: player.orderWarnings,
-          money: player.money,
-          lastPct: player.lastPct,
-          purchasedItems: [...player.purchasedItems],
-          apartmentValue: player.apartmentValue,
+          totalPoints: player.totalPoints,
+          lastRoundPoints: player.lastRoundPoints,
         }),
       ),
       transcript: [...room.transcript],

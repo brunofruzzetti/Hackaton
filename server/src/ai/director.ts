@@ -3,7 +3,7 @@ import type { Room, RoomStore } from "../roomStore.js";
 import type { WsHub } from "../wsHub.js";
 import type { LlmService } from "./llm.js";
 import { buildNeighborPrompt } from "./prompt.js";
-import { estimateSpeechMs, getAiVoiceProfile } from "./voices.js";
+import { estimateTextDisplayMs } from "./textTiming.js";
 
 /**
  * Director de vecinos IA: decide cuándo habla cada uno y garantiza que nunca
@@ -128,13 +128,13 @@ export class AiDirector {
         return;
       }
 
-      const duration = estimateSpeechMs(text);
-      const voice = ai.voiceProfile ?? getAiVoiceProfile(0, ai.name);
+      const duration = estimateTextDisplayMs(text);
       const { entry } = this.store.startAiSpeech(room.code, ai.id, text, duration);
       this.hub.broadcastRoomState(room.code);
-      this.hub.broadcastNeighborSays(room.code, entry, ai.id, ai.roleId, voice);
+      this.hub.broadcastNeighborText(room.code, entry, ai.id, ai.roleId);
       console.log(
-        `[ai] ${ai.name}@${room.code} empieza a hablar (${duration}ms): "${text.slice(0, 120)}"`,
+        `[ai] ${ai.name}@${room.code} publica texto (${duration}ms de "hablando"): ` +
+          `"${text.slice(0, 120)}"`,
       );
     } catch (error: unknown) {
       console.error(`[ai] Error en la intervención de ${ai.name}@${room.code}:`, error);

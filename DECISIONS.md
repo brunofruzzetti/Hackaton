@@ -255,3 +255,35 @@ El juez se representa con un altavoz de megafonía, luz roja y subtítulos; no o
 asiento. El silencio forzado usa `RoomServiceClient` cuando LiveKit está configurado y,
 además, el cliente silencia su track durante 3 s como fallback. Se reactivan solo los tracks
 que silenció el juez, no los que el jugador ya tenía silenciados.
+
+## Revisión de diseño: sin tienda y con IA solo texto
+
+### D-043 · Se elimina la tienda, las monedas y el piso
+La economía de monedas y la tienda de 10 objetos se descartan. La partida dura 3 rondas y
+el ganador es quien acumula más puntos. Se eliminan `shared/src/shop.ts`, `ShopPanel`,
+`ApartmentScene`, los campos de dinero/objetos y la acción `buy_item`. La fase final pasa a
+llamarse `RESULTS`. La tienda y el piso quedan fuera del alcance de esta versión.
+
+### D-044 · Los vecinos IA y el juez solo publican texto
+No se usa TTS ni `speechSynthesis`: no hay voz de IA. Cada mensaje de IA aparece en la
+transcripción y cuenta como “hablando” durante una ventana calculada (2,2 s + 22 ms por
+carácter, máximo 6 s). Mientras está activa, el juez la cuenta como un participante más.
+Cada IA publica como máximo **2 mensajes por ronda**, con **15 s** entre mensajes. Si un
+humano empieza a hablar se invalida la generación pendiente, pero el texto ya publicado
+sigue visible hasta que termina su ventana. El juez también corta el texto IA cuando pide
+silencio. Esto sustituye a D-031 y D-032.
+
+### D-045 · Puntuación directa: puntos de tareas + bonus de rol
+Se abandona el porcentaje monetizable. Por ronda:
+- Puntos de tareas: 1/2/3 según dificultad de cada tarea cumplida (máximo 8 por mano).
+- Bonus de rol: 0-5 según la media ponderada de fidelidad, participación, creatividad y
+  reacción (pesos 40/20/20/20; la participación resta 10 por aviso de orden).
+- `totalPoints = taskPoints + roleBonus`.
+Los puntos se acumulan durante las 3 rondas y el ganador es quien tiene más. No hay dinero,
+tienda ni voto de jugadores. Esto sustituye a D-037 y D-038.
+
+### D-046 · El solapamiento cuenta también el texto IA
+El juez moderador cuenta como activos a los humanos que hablan y a las IA cuyo texto está
+en su ventana de “hablando”. Con 4 activos durante 2 s interviene. Solo silencia a los
+humanos; a las IA les corta el estado de habla y la generación. Así el texto IA cuenta para
+el orden de la sala sin necesidad de TTS.

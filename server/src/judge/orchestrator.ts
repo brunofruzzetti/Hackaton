@@ -1,14 +1,14 @@
 import { getEffectiveRole } from "@shared/index";
 import type { RoomStore } from "../roomStore.js";
 import type { WsHub } from "../wsHub.js";
-import { JUDGE_VOICE, estimateSpeechMs } from "../ai/voices.js";
+import { estimateTextDisplayMs } from "../ai/textTiming.js";
 import { createJudgeService, MockJudgeService, type JudgeService } from "./index.js";
 import type { JudgeRoundInput } from "./prompt.js";
 import { computeRoundResult } from "./scoring.js";
 
 /**
  * Cuando la sala entra en JUDGMENT, llama al juez final, calcula la ronda en
- * servidor y publica resultados + resumen por TTS.
+ * servidor y publica resultados + resumen de texto.
  */
 export class JudgeOrchestrator {
   private readonly judge: JudgeService;
@@ -122,20 +122,20 @@ export class JudgeOrchestrator {
 
     const winner = [...room.players.values()]
       .filter((player) => player.kind === "human")
-      .sort((a, b) => b.money - a.money)[0];
+      .sort((a, b) => b.totalPoints - a.totalPoints)[0];
     const best = result.players[0];
     const summary = room.isGameOver
-      ? `Acta final. Gana ${winner?.name ?? "la comunidad"} con ${winner?.money ?? 0} euros. ` +
+      ? `Acta final. Gana ${winner?.name ?? "la comunidad"} con ${winner?.totalPoints ?? 0} puntos. ` +
         `El resto, a revisar el buzón.`
       : `Acta de la ronda ${result.round}. Mejor vecino: ${best?.playerName ?? "nadie"} ` +
-        `con ${best?.totalPct ?? 0}%. ${best?.comentarioGracioso ?? ""}`.slice(0, 300);
+        `con ${best?.totalPoints ?? 0} puntos. ${best?.comentarioGracioso ?? ""}`.slice(0, 300);
 
-    room.judgeSpeakingUntil = Date.now() + estimateSpeechMs(summary);
-    this.hub.broadcastJudgeSays(roomCode, summary, "result", JUDGE_VOICE);
+    room.judgeSpeakingUntil = Date.now() + estimateTextDisplayMs(summary);
+    this.hub.broadcastJudgeText(roomCode, summary, "result");
     console.log(
       `[judge] ${roomCode}: ronda ${result.round} juzgada con ${provider}. ` +
         result.players
-          .map((player) => `${player.playerName}=${player.totalPct}%/${player.money}€`)
+          .map((player) => `${player.playerName}=${player.totalPoints}pts`)
           .join(", "),
     );
   }
