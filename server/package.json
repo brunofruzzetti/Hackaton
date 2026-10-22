@@ -1,0 +1,27 @@
+{
+  "name": "@junta/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsup src/index.ts --format esm --target node20 --out-dir dist --no-external @junta/shared",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@junta/shared": "*",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "livekit-server-sdk": "^2.9.7",
+    "openai": "^4.83.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "@types/ws": "^8.5.14",
+    "tsup": "^8.3.6",
+    "tsx": "^4.19.2"
+  }
+}

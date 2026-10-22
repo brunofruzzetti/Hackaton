@@ -1,0 +1,29 @@
+{
+  "name": "junta-de-vecinos",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Juego web multijugador por voz: una junta de vecinos con roles cliché, vecinos IA y un juez IA.",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm --workspace server run dev",
+    "dev:client": "npm --workspace client run dev",
+    "build": "npm --workspace server run build && npm --workspace client run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "npm --workspace server run typecheck && npm --workspace client run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
