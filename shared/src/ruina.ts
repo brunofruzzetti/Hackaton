@@ -136,10 +136,10 @@ export const RUINA_CONTRACTS: RuinaContract[] = [
       "Cambiar la puerta de roble por una puerta automática con videoportero. Presupuesto: 12.500 €.",
   },
   {
-    id: "llaves",
-    titulo: "Cambiar todas las llaves del garaje",
+    id: "iluminacion-garaje",
+    titulo: "Renovar la iluminación del garaje",
     descripcion:
-      "Sustituir la cerradura y las 8 copias de llave por un sistema codificado exclusivo. Presupuesto: 3.200 €.",
+      "Sustituir las luces viejas por LEDs de bajo consumo y sensores de movimiento. Presupuesto: 2.900 €.",
   },
   {
     id: "fachada",

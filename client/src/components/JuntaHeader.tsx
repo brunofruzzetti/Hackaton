@@ -63,7 +63,7 @@ export function JuntaHeader({ room, supabaseRealtime }: JuntaHeaderProps) {
           </div>
         </div>
 
-        <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-[1.05fr_1.2fr_0.8fr]">
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
           <div className="flex items-center gap-2 border-2 border-black bg-[#fef08a] px-2 py-1 shadow-[2px_2px_0_0_#000]">
             <span className="text-xl" aria-hidden="true">
               🔑
@@ -76,7 +76,7 @@ export function JuntaHeader({ room, supabaseRealtime }: JuntaHeaderProps) {
             </div>
           </div>
 
-          <div className="order-last col-span-2 flex items-center justify-between gap-2 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0_0_#000] sm:order-none sm:col-span-1">
+          <div className="flex items-center justify-between gap-2 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0_0_#000]">
             <div>
               <p className={`${BRUTAL.label} text-stone-500`}>FASE ACTUAL</p>
               <p className="text-base font-black uppercase leading-none tracking-tight sm:text-lg">
@@ -86,28 +86,6 @@ export function JuntaHeader({ room, supabaseRealtime }: JuntaHeaderProps) {
             <span className="hidden font-mono text-[10px] font-bold text-stone-400 sm:block">
               {PHASE_SHORT[room.phase] ?? ""}
             </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-2 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0_0_#000]">
-            <div>
-              <p className={`${BRUTAL.label} text-stone-500`}>RECHAZOS SEGUIDOS</p>
-              <p className="font-mono text-sm font-black">
-                {room.rejectionCount} / 3
-              </p>
-            </div>
-            <div
-              className="flex gap-0.5 text-base"
-              aria-label={`${room.rejectionCount} de 3 comisiones rechazadas seguidas`}
-            >
-              {[0, 1, 2].map((index) => (
-                <span
-                  key={index}
-                  className={index < room.rejectionCount ? "text-[#ef4444]" : "text-stone-300"}
-                >
-                  ☠
-                </span>
-              ))}
-            </div>
           </div>
         </div>
 
