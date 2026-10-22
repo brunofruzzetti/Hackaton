@@ -96,3 +96,50 @@ Evita romper el protocolo compartido más adelante.
 ### D-018 · Endpoint de depuración de salas
 `GET /api/debug/room/:code` devuelve el estado público (sin tokens) de una sala. Es solo
 para pruebas manuales del hackathon; no expone datos secretos.
+
+## Hito 2
+
+### D-019 · El audio se conecta al entrar en la sala, no al empezar la partida
+Al recibir `joined`, el cliente pide el token de LiveKit y se une al room `junta-<código>`.
+Así se puede probar el micro en el lobby y la sala está lista al repartir roles. Si el
+usuario sale o el WebSocket se reconecta, el audio se desconecta y se vuelve a conectar.
+
+### D-020 · Un solo track para LiveKit y los clips
+Se crea un `LocalAudioTrack` con cancelación de eco/ruido, se publica en LiveKit y el mismo
+`mediaStreamTrack` alimenta `MediaRecorder`. El botón de silencio silencia el track y
+bloquea el push-to-talk para que no se grabe audio que los demás no oyen. Los clips duran
+como máximo 30 s y los toques de menos de 0,4 s se descartan.
+
+### D-021 · Formato de subida STT
+El clip viaja como cuerpo binario (`application/octet-stream`) con cabeceras
+`x-room-code`, `x-player-id`, `x-session-token` y `x-audio-mime`. Evita meter base64 en el
+WebSocket y permite reintentar la petición. El servidor valida sesión, MIME y tamaño
+(máx. 10 MB) y responde 401/400/415/422/502/503 según el caso.
+
+### D-022 · Reintento de STT en el cliente y en el servidor
+El servidor reintenta una vez los errores transitorios del proveedor; el cliente reintenta
+una vez la subida si el fallo es de red o 5xx. Los errores de configuración (falta de API
+key) y los 4xx no se reintentan. El texto del error se muestra en pantalla sin tumbar la
+partida.
+
+### D-023 · Indicador de hablantes
+El cliente usa `ActiveSpeakersChanged` de LiveKit (que ya aplica un umbral de nivel de
+audio) y envía su propio estado `speaker_state` al servidor. La lista de vecinos combina
+el estado del servidor con el de LiveKit para dar feedback inmediato. El servidor sigue
+siendo la autoridad para los futuros avisos de orden del juez.
+
+### D-024 · Audio remoto sin librería de componentes
+Los tracks remotos se adjuntan a elementos `<audio>` ocultos creados por el hook. Si el
+navegador bloquea el autoplay, se muestra el botón **Activar sonido** (`room.startAudio`).
+No se añade `@livekit/components-react` para mantener el cliente ligero.
+
+### D-025 · Sin claves se puede seguir jugando con chat
+Si `POST /api/livekit/token` responde 503, la tarjeta de audio muestra "Audio no
+configurado" y el push-to-talk queda deshabilitado, pero el WebSocket, el lobby, el chat y
+la transcripción de texto siguen funcionando. `STT_PROVIDER=mock` permite probar el flujo
+completo de voz sin llamar a APIs externas.
+
+### D-026 · LiveKit local probado con el binario oficial
+El entorno de desarrollo no tenía Docker; se validó el flujo con
+`livekit-server --dev` (release oficial de Windows) en `ws://localhost:7880` y las claves
+`devkey`/`secret`. El README y `docs/hito-2.md` documentan ambas opciones.

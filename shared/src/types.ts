@@ -53,6 +53,26 @@ export interface SelfState {
   isHost: boolean;
 }
 
+/** Respuesta del endpoint que emite tokens de LiveKit. */
+export interface LivekitTokenResponse {
+  url: string;
+  token: string;
+  roomName: string;
+}
+
+/** Respuesta del endpoint de transcripción. */
+export interface SttResponse {
+  text: string;
+  provider: string;
+  entry: TranscriptEntry;
+}
+
+/** Cuerpo estándar de error de la API HTTP. */
+export interface ApiErrorBody {
+  error: string;
+  message: string;
+}
+
 /** Configuración pública que el cliente necesita (sin secretos). */
 export interface PublicConfig {
   livekitConfigured: boolean;

@@ -21,6 +21,19 @@ amueblar el piso. Tras 3 rondas gana el piso de mayor valor.
 - TTS: `speechSynthesis` en cliente para el MVP, tras una interfaz `TtsProvider`.
 - Env documentadas en `.env.example`.
 
+## Mapa de código (estado tras Hito 2)
+
+- `shared/src/roles.ts`: 8 roles y prompts. `shared/src/composition.ts`: composición y
+  regla conserje ⇒ presidente. `shared/src/events.ts`: protocolo WS + zod del cliente.
+- `server/src/roomStore.ts`: autoridad de salas y jugadores. `server/src/wsHub.ts`:
+  transporte WS, heartbeats y difusión. `server/src/livekit.ts`: JWT de LiveKit.
+- `server/src/stt/`: interfaz `SttProvider`, implementaciones OpenAI/Deepgram/mock y
+  `transcribeWithRetry`.
+- `client/src/hooks/useGameSocket.ts`: conexión WS, reconexión y estado de sala.
+  `client/src/hooks/useLiveKit.ts`: room de audio, hablantes y track local.
+- `client/src/components/PushToTalk.tsx`: MediaRecorder sobre el track de LiveKit,
+  subida HTTP y reintento. `AudioPanel.tsx` y `TranscriptPanel.tsx`: UI de audio/acta.
+
 ## Convenciones de código
 
 - TypeScript `strict`. **Prohibido `any`** salvo justificación en comentario.
@@ -86,3 +99,7 @@ Cotilla, moroso, presidente buenazo, el de las derramas, el que no se entera, ok
 - `npm test` ejecuta Vitest (tests de `/shared` y `/server`).
 - `npm run typecheck` debe pasar antes de cada commit.
 - Probar siempre el flujo móvil con túnel HTTPS antes de dar un hito por terminado.
+- Para audio se puede usar LiveKit Cloud o el binario local `--dev` (ver `docs/hito-2.md`).
+  Sin claves, `STT_PROVIDER=mock` permite probar el flujo de transcripción completo.
+- Los navegadores automatizados pueden no tener micrófono: el audio remoto y el chat sí se
+  pueden validar; la captura PTT se prueba en un dispositivo real.

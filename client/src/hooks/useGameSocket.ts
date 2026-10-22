@@ -46,8 +46,10 @@ export interface GameSocket {
   status: ConnectionStatus;
   room: RoomState | null;
   you: SelfState | null;
+  session: Session | null;
   error: string | null;
   clearError: () => void;
+  showError: (message: string) => void;
   createRoom: (name: string) => void;
   joinRoom: (code: string, name: string) => void;
   addAi: () => void;
@@ -62,6 +64,7 @@ export function useGameSocket(): GameSocket {
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [room, setRoom] = useState<RoomState | null>(null);
   const [you, setYou] = useState<SelfState | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const roomRef = useRef<RoomState | null>(null);
@@ -154,6 +157,7 @@ export function useGameSocket(): GameSocket {
         saveSession(session);
         applyRoom(message.state);
         setYou(message.you);
+        setSession(session);
         setStatus("connected");
         setError(null);
         if (window.location.pathname !== `/sala/${session.code}`) {
@@ -184,6 +188,7 @@ export function useGameSocket(): GameSocket {
         if (fatal && !roomRef.current) {
           setStatus("error");
           sessionRef.current = null;
+          setSession(null);
           clearSession();
         }
         break;
@@ -243,6 +248,7 @@ export function useGameSocket(): GameSocket {
     sessionRef.current = null;
     applyRoom(null);
     setYou(null);
+    setSession(null);
     setError(null);
     attemptsRef.current = 0;
     openSocket({ type: "create_room", name });
@@ -253,6 +259,7 @@ export function useGameSocket(): GameSocket {
     sessionRef.current = null;
     applyRoom(null);
     setYou(null);
+    setSession(null);
     setError(null);
     attemptsRef.current = 0;
     openSocket({ type: "join", code: code.toUpperCase(), name });
@@ -300,6 +307,7 @@ export function useGameSocket(): GameSocket {
     clearSession();
     applyRoom(null);
     setYou(null);
+    setSession(null);
     setError(null);
     setStatus("idle");
     window.history.replaceState(null, "", "/");
@@ -309,8 +317,10 @@ export function useGameSocket(): GameSocket {
     status,
     room,
     you,
+    session,
     error,
     clearError: () => setError(null),
+    showError: (message: string) => setError(message),
     createRoom,
     joinRoom,
     addAi,

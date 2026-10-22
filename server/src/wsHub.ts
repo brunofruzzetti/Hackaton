@@ -5,6 +5,7 @@ import {
   type ClientMessage,
   type ServerErrorCode,
   type ServerMessage,
+  type TranscriptEntry,
 } from "@shared/index";
 import { GameError } from "./errors.js";
 import type { RoomStore } from "./roomStore.js";
@@ -242,6 +243,11 @@ export class WsHub {
     this.broadcastRoom(session.code);
     ws.close(1000, "Has salido de la sala");
     console.log(`[ws] ${session.playerId} salió de ${session.code}`);
+  }
+
+  /** Difunde una entrada de transcripción ya creada (voz transcrita, sistema...). */
+  broadcastTranscript(code: string, entry: TranscriptEntry): void {
+    this.broadcast(code, { type: "transcript_append", entry });
   }
 
   private broadcastRoom(code: string): void {

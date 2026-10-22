@@ -55,6 +55,8 @@ export type ServerErrorCode =
   | "PLAYER_NOT_FOUND"
   | "UNAUTHORIZED"
   | "STT_ERROR"
+  | "LIVEKIT_NOT_CONFIGURED"
+  | "INVALID_REQUEST"
   | "SERVER_ERROR";
 
 /** Mensajes que el servidor envía al cliente. */

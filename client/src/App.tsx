@@ -10,15 +10,19 @@ export function App() {
 
   return (
     <main className="app-shell">
-      {game.room && game.you ? (
+      {game.room && game.you && game.session ? (
         <Lobby
           room={game.room}
           you={game.you}
+          session={game.session}
           status={game.status}
           onAddAi={game.addAi}
           onRemoveAi={game.removeAi}
           onStart={game.startGame}
           onLeave={game.leave}
+          onSendChat={game.sendChat}
+          onSpeakingChange={game.setSpeaking}
+          onError={game.showError}
         />
       ) : busy ? (
         <section className="connecting-screen">

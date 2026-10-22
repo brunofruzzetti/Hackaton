@@ -72,6 +72,10 @@ docker run --rm -p 7880:7880 -p 7881:7881 -p 7882:7882/udp \
   -e LIVEKIT_KEYS="devkey: secret" livekit/livekit-server --dev
 ```
 
+Sin Docker (Windows/macOS/Linux) puedes usar el binario oficial: descarga el release de
+<https://github.com/livekit/livekit/releases> y ejecuta `livekit-server --dev`. En
+`docs/hito-2.md` hay un ejemplo completo para PowerShell.
+
 ```env
 LIVEKIT_URL=ws://localhost:7880
 LIVEKIT_API_KEY=devkey
@@ -81,6 +85,31 @@ LIVEKIT_API_SECRET=secret
 En móvil, `localhost` no apunta a tu PC: usa la IP de tu red o un túnel. Para WebRTC por
 túnel necesitas además exponer los puertos UDP/TCP de LiveKit; lo más simple en el
 hackathon es usar LiveKit Cloud.
+
+## Audio y transcripción
+
+- Al entrar en una sala, el cliente pide un token a `POST /api/livekit/token` y se conecta
+  al room `junta-CODIGO` con micrófono publicado.
+- **Silenciar micrófono** corta la publicación del micro (y deshabilita el push-to-talk).
+- El indicador de hablantes usa `ActiveSpeakersChanged` de LiveKit; el cliente informa al
+  servidor por WebSocket y la lista de vecinos se resalta en tiempo real.
+- **Push-to-talk**: mantén pulsado el botón, habla y suelta. El clip se sube a
+  `POST /api/stt` y el servidor lo transcribe con `STT_PROVIDER`:
+  - `openai` → Whisper (`whisper-1`, español).
+  - `deepgram` → Nova (`nova-3`, español).
+  - `mock` → texto simulado para desarrollo, sin claves.
+- La transcripción se difunde por WebSocket y se muestra como `[jugador | rol] texto`.
+- El chat de texto comparte la misma lista y sirve de respaldo si falla el micro.
+- Si LiveKit o el STT no están configurados, la partida no se cae: se muestra un aviso y
+  se puede seguir con el chat.
+
+Configuración de STT en `.env`:
+
+```env
+STT_PROVIDER=openai        # openai | deepgram | mock
+OPENAI_API_KEY=sk-...
+DEEPGRAM_API_KEY=...
+```
 
 ## HTTPS en desarrollo (obligatorio para el micrófono)
 
@@ -122,10 +151,22 @@ Abre la URL `https://...ngrok-free.app` en el móvil.
 4. Al empezar se reparten roles aleatorios sin repetir, aplicando la regla
    **conserje ⇒ presidente**.
 5. En partida: hablas por LiveKit y mantienes pulsado el botón de push-to-talk para dejar
-   un clip que el servidor transcribe y comparte con todos.
+   un clip que el servidor transcribe y comparte con todos. El chat de texto es el plan B.
+
+## Endpoints
+
+| Método | Ruta | Uso |
+| --- | --- | --- |
+| GET | `/api/health` | Estado del servidor |
+| GET | `/api/config` | Configuración pública (LiveKit, límites) |
+| POST | `/api/livekit/token` | Token JWT de audio para una sesión |
+| POST | `/api/stt` | Subida binaria de un clip y transcripción |
+| WS | `/ws` | Eventos de sala, lobby, chat y transcripción |
+| GET | `/api/debug/room/:code` | Estado público de una sala (solo depuración) |
 
 ## Documentación
 
 - `AGENTS.md`: reglas y convenciones para futuras sesiones.
 - `DECISIONS.md`: decisiones tomadas ante ambigüedades.
-- `docs/`: notas de pruebas por hito.
+- `docs/hito-1.md`: pruebas de salas, lobby y composición.
+- `docs/hito-2.md`: pruebas de LiveKit, PTT y transcripción.

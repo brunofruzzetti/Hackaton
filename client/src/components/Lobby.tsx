@@ -11,6 +11,10 @@ import {
   type SelfState,
 } from "@shared/index";
 import type { ConnectionStatus } from "../hooks/useGameSocket";
+import { useLiveKit } from "../hooks/useLiveKit";
+import type { Session } from "../lib/session";
+import { AudioPanel } from "./AudioPanel";
+import { TranscriptPanel } from "./TranscriptPanel";
 
 const PHASE_LABELS: Record<Phase, string> = {
   LOBBY: "Lobby",
@@ -23,11 +27,15 @@ const PHASE_LABELS: Record<Phase, string> = {
 interface LobbyProps {
   room: RoomState;
   you: SelfState;
+  session: Session;
   status: ConnectionStatus;
   onAddAi: () => void;
   onRemoveAi: (playerId: string) => void;
   onStart: () => void;
   onLeave: () => void;
+  onSendChat: (text: string) => void;
+  onSpeakingChange: (speaking: boolean) => void;
+  onError: (message: string) => void;
 }
 
 function initials(name: string): string {
@@ -49,11 +57,15 @@ function sortPlayers(players: PlayerState[]): PlayerState[] {
 export function Lobby({
   room,
   you,
+  session,
   status,
   onAddAi,
   onRemoveAi,
   onStart,
   onLeave,
+  onSendChat,
+  onSpeakingChange,
+  onError,
 }: LobbyProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -69,6 +81,20 @@ export function Lobby({
   const isHost = you.isHost;
   const inLobby = room.phase === "LOBBY";
   const shareLink = `${window.location.origin}/sala/${room.code}`;
+
+  const audio = useLiveKit({
+    session,
+    enabled: status === "connected",
+    onSpeakingChange,
+  });
+
+  const speakingIds = new Set<string>(audio.speakingIds);
+  for (const player of room.players) {
+    if (player.speaking) speakingIds.add(player.id);
+  }
+  const speakingNames = players
+    .filter((player) => speakingIds.has(player.id))
+    .map((player) => player.name);
 
   async function copyLink(): Promise<void> {
     setCopyFailed(false);
@@ -119,20 +145,39 @@ export function Lobby({
       <section className="card proposal">
         <p className="label">Propuesta de la comunidad</p>
         <h2>{room.proposal}</h2>
-        <p className="hint">Ronda {Math.max(room.round, 1)} de {GAME_CONFIG.ROUNDS}</p>
+        <p className="hint">
+          Ronda {Math.max(room.round, 1)} de {GAME_CONFIG.ROUNDS}
+        </p>
       </section>
+
+      <AudioPanel audio={audio} session={session} speakingNames={speakingNames} onError={onError} />
+
+      <TranscriptPanel
+        entries={room.transcript}
+        youId={you.playerId}
+        chatDisabled={status !== "connected"}
+        onSendChat={onSendChat}
+      />
 
       <section className="card">
         <div className="card-head">
-          <h2>Vecinos ({room.players.length}/{GAME_CONFIG.MAX_PARTICIPANTS})</h2>
+          <h2>
+            Vecinos ({room.players.length}/{GAME_CONFIG.MAX_PARTICIPANTS})
+          </h2>
           <span className="live-dot" data-state={status} title={`Conexión: ${status}`} />
         </div>
 
         <ul className="player-list">
           {players.map((player) => {
             const role = player.roleId ? ROLES[player.roleId] : null;
+            const isSpeaking = speakingIds.has(player.id) && player.connected;
             return (
-              <li key={player.id} className={player.connected ? "player-row" : "player-row offline"}>
+              <li
+                key={player.id}
+                className={`player-row ${player.connected ? "" : "offline"} ${
+                  isSpeaking ? "speaking" : ""
+                }`}
+              >
                 <span className="avatar" data-kind={player.kind}>
                   {initials(player.name)}
                 </span>
@@ -142,6 +187,7 @@ export function Lobby({
                     {player.id === you.playerId && <span className="badge badge-you">Tú</span>}
                     {player.isHost && <span className="badge">Anfitrión</span>}
                     {player.kind === "ai" && <span className="badge badge-ai">IA</span>}
+                    {isSpeaking && <span className="badge badge-speaking">Hablando</span>}
                     {!player.connected && <span className="badge badge-offline">Desconectado</span>}
                   </div>
                   <p className="player-role">
@@ -204,7 +250,10 @@ export function Lobby({
               className="btn btn-secondary"
               type="button"
               onClick={onAddAi}
-              disabled={ais.length >= GAME_CONFIG.MAX_AI_PLAYERS || room.players.length >= GAME_CONFIG.MAX_PARTICIPANTS}
+              disabled={
+                ais.length >= GAME_CONFIG.MAX_AI_PLAYERS ||
+                room.players.length >= GAME_CONFIG.MAX_PARTICIPANTS
+              }
             >
               + Añadir vecino IA
             </button>
@@ -215,7 +264,9 @@ export function Lobby({
         )}
 
         {inLobby && !isHost && (
-          <p className="hint center">El anfitrión decidirá cuándo empezar. Ve calentando la voz.</p>
+          <p className="hint center">
+            El anfitrión decidirá cuándo empezar. Ve calentando la voz: el audio ya está abierto.
+          </p>
         )}
       </section>
 
@@ -223,7 +274,8 @@ export function Lobby({
         <section className="card">
           <h2>Roles repartidos</h2>
           <p className="hint">
-            Se mantienen durante toda la partida. La discusión por voz llega en el Hito 2/4.
+            Se mantienen durante toda la partida. Habla por LiveKit y usa el push-to-talk para dejar
+            tus intervenciones en el acta.
           </p>
           <div className="role-grid">
             {players.map((player) => {
