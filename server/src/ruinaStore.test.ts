@@ -37,7 +37,7 @@ function otherPlayer(room: ReturnType<typeof setup>["room"], id: string) {
   return room.players.find((player) => player.id !== id)!;
 }
 
-describe("Junta de Ruina · lobby y reparto", () => {
+describe("Sabotea la junta · lobby y reparto", () => {
   it("exige mínimo 5 jugadores para empezar", () => {
     const store = new RuinaStore();
     const host = store.createRoom("Ana");
@@ -97,7 +97,7 @@ describe("Junta de Ruina · lobby y reparto", () => {
   });
 });
 
-describe("Junta de Ruina · IAs de prueba", () => {
+describe("Sabotea la junta · IAs de prueba", () => {
   function withAis(count = 4) {
     const store = new RuinaStore();
     const host = store.createRoom("Humano");
@@ -164,7 +164,7 @@ describe("Junta de Ruina · IAs de prueba", () => {
   });
 });
 
-describe("Junta de Ruina · fases", () => {
+describe("Sabotea la junta · fases", () => {
   it("el presidente nomina y la comisión se aprueba con mayoría", () => {
     const { store, code, room } = setup(5, 7);
     const pres = president(room);

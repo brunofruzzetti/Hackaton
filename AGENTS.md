@@ -1,10 +1,10 @@
-# AGENTS.md — Junta de Ruina
+# AGENTS.md - Sabotea la junta
 
 Contrato para futuras sesiones de agentes. Léelo antes de tocar código.
 
 ## Producto
 
-Party game web de deducción social **"Junta de Ruina"** para **5–8 jugadores**. Vecinos
+Party game web de deducción social **"Sabotea la junta"** para **5–8 jugadores**. Vecinos
 honestos y comerciales encubiertos debaten y votan contratos de una comunidad. Al mejor de
 3 rondas, gana el primer bando que consigue 2 puntos.
 

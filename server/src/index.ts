@@ -15,7 +15,7 @@ const hub = new RuinaWsHub(app.server, store, supabaseMirror);
 
 app.get("/api/health", async () => ({
   ok: true,
-  service: "junta-de-ruina",
+  service: "sabotea-la-junta",
   livekitConfigured,
   supabaseConfigured,
   rooms: store.roomCount,

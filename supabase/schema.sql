@@ -1,5 +1,5 @@
 -- ============================================================
--- Junta de Ruina · esquema Supabase (desarrollo)
+-- Sabotea la junta · esquema Supabase (desarrollo)
 -- ============================================================
 -- AVISO: las políticas RLS de `salas` y `jugadores` son deliberadamente
 -- abiertas para prototipar sin auth. La tabla `expedientes` (equipo, compañeros

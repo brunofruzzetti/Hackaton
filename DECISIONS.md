@@ -288,7 +288,7 @@ en su ventana de “hablando”. Con 4 activos durante 2 s interviene. Solo sile
 humanos; a las IA les corta el estado de habla y la generación. Así el texto IA cuenta para
 el orden de la sala sin necesidad de TTS.
 
-## Nueva etapa: Junta de Ruina (sustituye al prototipo anterior)
+## Nueva etapa: Sabotea la junta (sustituye al prototipo anterior)
 
 ### D-100 · Reinicio del producto y de las reglas
 Se abandona el juego de roles/juez/tareas. El nuevo producto es un party game de deducción

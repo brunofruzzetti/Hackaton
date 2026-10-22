@@ -64,7 +64,7 @@ export function ResolutionModal({ room, onLeave }: ResolutionModalProps) {
             >
               <span className="block max-w-[150px] text-center text-xs sm:text-sm">{stampText(room)}</span>
               <span className="mt-0.5 block text-center font-mono text-[7px] tracking-wider opacity-80">
-                JUNTA DE RUINA · 3.º B
+                SABOTEA LA JUNTA · 3.º B
               </span>
             </div>
           </div>

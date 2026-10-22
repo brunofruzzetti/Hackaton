@@ -1,9 +1,9 @@
-# Junta de Ruina
+# Sabotea la junta
 
-Party game web de deducción social para **5–8 jugadores** ambientado en una comunidad de
-vecinos. Una constructora ha comprado a una parte de la junta: los vecinos honestos deben
-aprobar contratos limpios, mientras los **comerciales encubiertos** intentan colar sabotajes
-sin que se note.
+**Sabotea la junta** es un party game web de deducción social para **5–8 jugadores**
+ambientado en una comunidad de vecinos. Una constructora ha comprado a una parte de la
+junta: los vecinos honestos deben aprobar contratos limpios, mientras los **comerciales
+encubiertos** intentan colar sabotajes sin que se note.
 
 ## Reglas
 

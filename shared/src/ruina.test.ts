@@ -11,7 +11,7 @@ import {
   secretText,
 } from "./ruina.js";
 
-describe("Junta de Ruina · configuración", () => {
+describe("Sabotea la junta · configuración", () => {
   it("acepta entre 5 y 8 jugadores y reparte los bandos pedidos", () => {
     expect(RUINA_MIN_PLAYERS).toBe(5);
     expect(RUINA_MAX_PLAYERS).toBe(8);

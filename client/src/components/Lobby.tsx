@@ -76,9 +76,9 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
               JUNTA EXTRAORDINARIA DE PROPIETARIOS
             </p>
             <h1 className="mt-1 text-5xl font-black uppercase leading-[0.86] tracking-tighter sm:text-7xl">
-              Junta de
+              Sabotea la
               <br />
-              <span className="text-[#b91c1c]">Ruina</span>
+              <span className="text-[#b91c1c]">junta</span>
             </h1>
             <p className="mt-3 max-w-2xl font-mono text-sm leading-relaxed text-stone-700 sm:text-base">
               Una constructora ha comprado a algunos vecinos. Debatid, votad los contratos y
@@ -234,7 +234,7 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
       <div className="mx-auto max-w-5xl">
         <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-[3px] border-black bg-[#fffdf7] p-3 shadow-[6px_6px_0_0_#000]">
           <div>
-            <p className={`${BRUTAL.label} text-stone-500`}>JUNTA DE RUINA · TABLÓN DE ANUNCIOS</p>
+            <p className={`${BRUTAL.label} text-stone-500`}>SABOTEA LA JUNTA · TABLÓN DE ANUNCIOS</p>
             <h1 className="text-3xl font-black uppercase leading-none tracking-tight sm:text-4xl">
               Código <span className="text-[#b91c1c]">{room.code}</span>
             </h1>
