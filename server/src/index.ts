@@ -67,6 +67,8 @@ function livekitUrlForOrigin(configuredUrl: string, origin: string | undefined):
   try {
     const configured = new URL(configuredUrl);
     const requestOrigin = new URL(origin);
+    // Solo reescribimos en HTTP LAN; en túneles HTTPS hace falta LIVEKIT_PUBLIC_URL.
+    if (requestOrigin.protocol !== "http:") return configuredUrl;
     const configuredIsLocal =
       configured.hostname === "localhost" || configured.hostname === "127.0.0.1";
     const originIsLocal =

@@ -18,16 +18,20 @@ interface LobbyProps {
   supabaseRealtime: { configured: boolean; connected: boolean };
 }
 
-function buildShareLink(code: string, config: PublicConfig | null): string {
+function buildBaseLink(config: PublicConfig | null): string {
   const publicBase = config?.publicUrl?.replace(/\/+$/, "");
-  if (publicBase) return `${publicBase}/sala/${code}`;
+  if (publicBase) return publicBase;
 
   const { protocol, hostname, port } = window.location;
   const localHost = ["localhost", "127.0.0.1", "::1"].includes(hostname);
   const lan = config?.lanAddresses?.[0];
   const host = localHost && lan ? lan : hostname;
   const portPart = port ? `:${port}` : "";
-  return `${protocol}//${host}${portPart}/sala/${code}`;
+  return `${protocol}//${host}${portPart}`;
+}
+
+function buildShareLink(code: string, config: PublicConfig | null): string {
+  return `${buildBaseLink(config)}/sala/${code}`;
 }
 
 function RealtimeBadge({ realtime }: { realtime: LobbyProps["supabaseRealtime"] }) {
@@ -73,6 +77,7 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
     const cleanCode = code.trim().toUpperCase();
     const codeOk = /^[A-Z]{4}$/.test(cleanCode);
     const busy = socket.status === "connecting" || socket.status === "reconnecting";
+    const entryLink = buildBaseLink(publicConfig);
 
     function create(event: FormEvent): void {
       event.preventDefault();
@@ -230,6 +235,41 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
                     🕵️
                   </span>
                 </div>
+              </section>
+
+              <section className="border-2 border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0 border-2 border-black bg-[#fffdf7] p-1">
+                    <QRCodeSVG
+                      value={entryLink}
+                      size={92}
+                      bgColor="#fffdf7"
+                      fgColor="#111827"
+                      level="M"
+                      title="Abrir Sabotea la junta en el móvil"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-mono text-[10px] font-black uppercase tracking-wider">
+                      📱 Acceso desde el móvil
+                    </p>
+                    <p className="mt-1 font-mono text-[9px] leading-relaxed text-stone-500">
+                      Escanea para abrir el menú principal y desde ahí crear o unirte a una sala.
+                    </p>
+                    <a
+                      href={entryLink}
+                      className="mt-1 inline-block border-2 border-black bg-[#38bdf8] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    >
+                      Abrir menú
+                    </a>
+                  </div>
+                </div>
+                {entryLink.includes("localhost") && (
+                  <p className="mt-2 border-2 border-dashed border-black bg-[#fef08a] px-2 py-1 font-mono text-[8px] font-bold uppercase">
+                    Configura PUBLIC_URL con una URL pública para que este QR funcione fuera de
+                    tu red.
+                  </p>
+                )}
               </section>
             </aside>
           </div>
