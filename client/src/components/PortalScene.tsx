@@ -1,63 +1,7 @@
 import type { RuinaPlayerPublic, RuinaState } from "@shared/index";
 import type { RuinaSelf } from "../hooks/useRuinaSocket";
 import { BRUTAL } from "../lib/ui";
-
-const HAIRS = ["#2f1b12", "#111827", "#7c2d12", "#a16207", "#b91c1c", "#6b7280"];
-const SHIRTS = ["#1d4ed8", "#15803d", "#b91c1c", "#7c3aed", "#0f766e", "#c2410c", "#ca8a04", "#475569"];
-const SKINS = ["#f2c6a0", "#d9a066", "#b97a56", "#8d5524"];
-
-function hash(text: string): number {
-  let value = 0;
-  for (let index = 0; index < text.length; index += 1) {
-    value = (value * 31 + text.charCodeAt(index)) >>> 0;
-  }
-  return value;
-}
-
-function PixelAvatar({ seed, isAi, size = 30 }: { seed: string; isAi: boolean; size?: number }) {
-  const h = hash(seed);
-  const hair = HAIRS[h % HAIRS.length] ?? HAIRS[0]!;
-  const shirt = SHIRTS[(h >>> 3) % SHIRTS.length] ?? SHIRTS[0]!;
-  const skin = SKINS[(h >>> 7) % SKINS.length] ?? SKINS[0]!;
-
-  if (isAi) {
-    return (
-      <svg viewBox="0 0 16 24" width={size} height={size * 1.5} shapeRendering="crispEdges" aria-hidden="true">
-        <rect x="7" y="0" width="2" height="3" fill="#0f172a" />
-        <rect x="7" y="0" width="2" height="1" fill="#38bdf8" />
-        <rect x="3" y="3" width="10" height="7" fill="#cbd5e1" />
-        <rect x="4" y="5" width="2" height="2" fill="#0ea5e9" />
-        <rect x="10" y="5" width="2" height="2" fill="#0ea5e9" />
-        <rect x="6" y="8" width="4" height="1" fill="#475569" />
-        <rect x="4" y="10" width="8" height="6" fill="#475569" />
-        <rect x="2" y="11" width="2" height="5" fill="#94a3b8" />
-        <rect x="12" y="11" width="2" height="5" fill="#94a3b8" />
-        <rect x="5" y="16" width="2" height="5" fill="#1e293b" />
-        <rect x="9" y="16" width="2" height="5" fill="#1e293b" />
-        <rect x="4" y="21" width="3" height="2" fill="#0f172a" />
-        <rect x="9" y="21" width="3" height="2" fill="#0f172a" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 16 24" width={size} height={size * 1.5} shapeRendering="crispEdges" aria-hidden="true">
-      <rect x="4" y="0" width="8" height="3" fill={hair} />
-      <rect x="3" y="3" width="10" height="5" fill={skin} />
-      <rect x="4" y="2" width="8" height="2" fill={hair} />
-      <rect x="5" y="5" width="1" height="1" fill="#111827" />
-      <rect x="10" y="5" width="1" height="1" fill="#111827" />
-      <rect x="7" y="7" width="2" height="1" fill="#9a3412" />
-      <rect x="4" y="9" width="8" height="7" fill={shirt} />
-      <rect x="2" y="10" width="2" height="6" fill={skin} />
-      <rect x="12" y="10" width="2" height="6" fill={skin} />
-      <rect x="5" y="16" width="2" height="5" fill="#1f2937" />
-      <rect x="9" y="16" width="2" height="5" fill="#1f2937" />
-      <rect x="4" y="21" width="3" height="2" fill="#111827" />
-      <rect x="9" y="21" width="3" height="2" fill="#111827" />
-    </svg>
-  );
-}
+import { PixelAvatar } from "./PixelAvatar";
 
 interface PortalSceneProps {
   room: RuinaState;
@@ -110,7 +54,7 @@ function SceneSeat({ player, position, isYou, role, isTurn, front }: SceneSeatPr
       >
         {role && (
           <span
-            className="absolute -top-2 z-30 border border-black bg-[#fef08a] px-1 py-0.5 text-[8px] leading-none shadow-[1px_1px_0_0_#000]"
+            className="absolute -top-2 z-30 border border-black bg-[#fef08a] px-1 py-0.5 text-[8px] leading-none shadow-[1px_1px_0_0_#000] lg:text-[10px]"
             aria-hidden="true"
           >
             {role === "PRESIDENTE" ? "🔑" : "📄"}
@@ -118,23 +62,28 @@ function SceneSeat({ player, position, isYou, role, isTurn, front }: SceneSeatPr
         )}
 
         <div
-          className={`relative flex h-[37px] w-[29px] items-end justify-center border-2 border-black bg-[#b8a78f] shadow-[2px_2px_0_0_#000] sm:h-[43px] sm:w-[34px] ${
+          className={`relative flex h-[37px] w-[29px] items-end justify-center border-2 border-black bg-[#b8a78f] shadow-[2px_2px_0_0_#000] sm:h-[43px] sm:w-[34px] lg:h-[54px] lg:w-[42px] ${
             isYou ? "ring-[3px] ring-[#fef08a]" : ""
           } ${front ? "bg-[#fef08a]" : ""}`}
         >
-          <div className="absolute inset-x-0 bottom-0 h-[6px] border-t-2 border-black bg-[#8b5e3c]" />
-          <div className="absolute inset-x-1 top-0 h-[3px] border-b border-black/40 bg-[#d6c8b2]" />
+          <div className="absolute inset-x-0 bottom-0 h-[6px] border-t-2 border-black bg-[#8b5e3c] lg:h-[8px]" />
+          <div className="absolute inset-x-1 top-0 h-[3px] border-b border-black/40 bg-[#d6c8b2] lg:h-[4px]" />
           <div className="relative z-10 mb-[2px]">
-            <PixelAvatar seed={player.id} isAi={player.isAi} size={front ? 22 : 19} />
+            <PixelAvatar
+              seed={player.id}
+              isAi={player.isAi}
+              size={front ? 22 : 19}
+              className={front ? "h-auto w-[22px] sm:w-[26px] lg:w-[34px]" : "h-auto w-[19px] sm:w-[22px] lg:w-[30px]"}
+            />
           </div>
-          <div className="absolute -bottom-[4px] left-1/2 h-[3px] w-[22px] -translate-x-1/2 border-x-2 border-black bg-[#6b4423]" />
+          <div className="absolute -bottom-[4px] left-1/2 h-[3px] w-[22px] -translate-x-1/2 border-x-2 border-black bg-[#6b4423] lg:w-[32px]" />
         </div>
 
-        <div className="mt-0.5 max-w-[48px] border border-black bg-[#fffdf7] px-0.5 py-0.5 text-center shadow-[1px_1px_0_0_#000] sm:max-w-[58px]">
-          <p className="truncate font-mono text-[6px] font-black uppercase leading-tight sm:text-[7px]">
+        <div className="mt-0.5 max-w-[48px] border border-black bg-[#fffdf7] px-0.5 py-0.5 text-center shadow-[1px_1px_0_0_#000] sm:max-w-[58px] lg:max-w-[68px]">
+          <p className="truncate font-mono text-[6px] font-black uppercase leading-tight sm:text-[7px] lg:text-[8px]">
             {player.nombre}
           </p>
-          <p className="font-mono text-[5px] font-bold uppercase leading-tight text-stone-500 sm:text-[6px]">
+          <p className="font-mono text-[5px] font-bold uppercase leading-tight text-stone-500 sm:text-[6px] lg:text-[7px]">
             {player.piso}
             {player.isAi ? " 🤖" : ""}
           </p>

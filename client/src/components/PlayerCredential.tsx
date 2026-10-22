@@ -2,8 +2,7 @@ import { useState } from "react";
 import type { RuinaPrivateInfo, RuinaState } from "@shared/index";
 import type { RuinaSelf } from "../hooks/useRuinaSocket";
 import { BRUTAL } from "../lib/ui";
-
-const AVATARS = ["🧑‍🦱", "👩‍🦰", "🧔", "👵", "👨‍🦲", "👩‍🦳", "🧑‍🎤", "👴"];
+import { PixelAvatar } from "./PixelAvatar";
 
 interface PlayerCredentialProps {
   room: RuinaState;
@@ -16,7 +15,6 @@ export function PlayerCredential({ room, you, privateInfo }: PlayerCredentialPro
   const playerIndex = room.players.findIndex((player) => player.id === you.playerId);
   const player = room.players[playerIndex];
   const dishonest = privateInfo.equipo === "DESHONESTOS";
-  const avatar = AVATARS[Math.max(0, playerIndex) % AVATARS.length] ?? "🧑";
 
   return (
     <section className={`${BRUTAL.cardLg} overflow-hidden`}>
@@ -47,8 +45,12 @@ export function PlayerCredential({ room, you, privateInfo }: PlayerCredentialPro
       <div className={open ? "block" : "hidden lg:block"}>
         <div className="p-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center border-2 border-black bg-[#fef08a] text-4xl shadow-[3px_3px_0_0_#000]">
-              {avatar}
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center border-2 border-black bg-[#fef08a] shadow-[3px_3px_0_0_#000] lg:h-[72px] lg:w-[72px]">
+              <PixelAvatar
+                seed={you.playerId}
+                size={40}
+                className="h-auto w-10 lg:w-11"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className={`${BRUTAL.label} text-stone-500`}>VECINO DEL PISO</p>

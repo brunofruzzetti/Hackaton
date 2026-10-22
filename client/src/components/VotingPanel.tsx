@@ -269,8 +269,8 @@ export function VotingPanel({ room, you, privateInfo, socket }: VotingPanelProps
         </div>
         <div className="p-3">
           <p className="border-2 border-dashed border-black bg-white px-2 py-1.5 font-mono text-[10px] leading-relaxed">
-            El presidente tiene la llave del portal y elige a un vocal para la Comisión de Obras.
-            Después, la comisión firmará el contrato a solas.
+            El presidente tiene el turno y elige a un vocal para la Comisión de Obras. Después,
+            la comisión firmará el contrato a solas.
           </p>
           <p className="mt-2 font-mono text-[10px] font-bold uppercase">
             🔑 PRESIDENTE: <strong>{president?.nombre ?? "—"}</strong>

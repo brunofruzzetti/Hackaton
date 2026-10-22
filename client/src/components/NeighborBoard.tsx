@@ -101,7 +101,7 @@ export function NeighborBoard({ room, you }: NeighborBoardProps) {
 
                 {isTurn && (
                   <p className="mt-1 font-mono text-[8px] font-bold uppercase text-amber-700">
-                    ▲ TIENE LA LLAVE
+                    ▲ TIENE EL TURNO
                   </p>
                 )}
               </div>

@@ -236,7 +236,7 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
           <div>
             <p className={`${BRUTAL.label} text-stone-500`}>JUNTA DE RUINA · TABLÓN DE ANUNCIOS</p>
             <h1 className="text-3xl font-black uppercase leading-none tracking-tight sm:text-4xl">
-              Sala <span className="text-[#b91c1c]">{room.code}</span>
+              Código <span className="text-[#b91c1c]">{room.code}</span>
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">

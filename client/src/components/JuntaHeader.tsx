@@ -24,10 +24,10 @@ export function JuntaHeader({ room, supabaseRealtime }: JuntaHeaderProps) {
             </p>
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
               <h1 className="text-2xl font-black uppercase leading-none tracking-tight sm:text-3xl">
-                Sala {room.code}
+                Código {room.code}
               </h1>
               <span className="font-mono text-xs font-bold text-stone-500">
-                RONDA {room.round}/3
+                RONDA {room.round} DE 3
               </span>
             </div>
           </div>
@@ -69,7 +69,7 @@ export function JuntaHeader({ room, supabaseRealtime }: JuntaHeaderProps) {
               🔑
             </span>
             <div className="min-w-0">
-              <p className={`${BRUTAL.label} text-stone-700`}>LLAVE DEL PORTAL</p>
+              <p className={`${BRUTAL.label} text-stone-700`}>PRESIDENTE ACTUAL</p>
               <p className="truncate text-sm font-black uppercase leading-tight">
                 {president?.nombre ?? "—"}
               </p>
@@ -90,12 +90,15 @@ export function JuntaHeader({ room, supabaseRealtime }: JuntaHeaderProps) {
 
           <div className="flex items-center justify-between gap-2 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0_0_#000]">
             <div>
-              <p className={`${BRUTAL.label} text-stone-500`}>RECHAZOS</p>
+              <p className={`${BRUTAL.label} text-stone-500`}>RECHAZOS SEGUIDOS</p>
               <p className="font-mono text-sm font-black">
-                {room.rejectionCount} DE 3
+                {room.rejectionCount} / 3
               </p>
             </div>
-            <div className="flex gap-0.5 text-base" aria-label={`${room.rejectionCount} de 3 rechazos`}>
+            <div
+              className="flex gap-0.5 text-base"
+              aria-label={`${room.rejectionCount} de 3 comisiones rechazadas seguidas`}
+            >
               {[0, 1, 2].map((index) => (
                 <span
                   key={index}
