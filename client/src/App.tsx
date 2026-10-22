@@ -19,10 +19,12 @@ export function App() {
           onAddAi={game.addAi}
           onRemoveAi={game.removeAi}
           onStart={game.startGame}
+          onStartDiscussion={game.startDiscussion}
           onLeave={game.leave}
           onSendChat={game.sendChat}
           onSpeakingChange={game.setSpeaking}
           onError={game.showError}
+          judgeMessage={game.judgeMessage}
         />
       ) : busy ? (
         <section className="connecting-screen">

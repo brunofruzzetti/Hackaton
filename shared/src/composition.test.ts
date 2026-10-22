@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   assignRoles,
   ensureConciergePresident,
+  pickPresidentStyle,
   planComposition,
   type ParticipantSeed,
   type Rng,
 } from "./composition.js";
-import { ROLE_IDS, type RoleId } from "./roles.js";
+import { PRESIDENT_STYLE_IDS, ROLE_IDS, type RoleId } from "./roles.js";
 
 /** RNG determinista para tests (mulberry32). */
 function seededRng(seed: number): Rng {
@@ -98,14 +99,29 @@ describe("planComposition", () => {
     expect(plan.errors.join(" ")).toMatch(/humano/i);
   });
 
-  it("rechaza más de 8 participantes", () => {
-    const plan = planComposition({ humans: 5, ai: 4 });
+  it("acepta 10 participantes (6 humanos + 4 IA)", () => {
+    const plan = planComposition({ humans: 6, ai: 4 });
+    expect(plan.ok).toBe(true);
+    expect(plan.finalTotal).toBe(10);
+  });
+
+  it("rechaza más de 10 participantes", () => {
+    const plan = planComposition({ humans: 7, ai: 4 });
     expect(plan.ok).toBe(false);
   });
 
   it("rechaza más de 4 IA", () => {
     const plan = planComposition({ humans: 3, ai: 5 });
     expect(plan.ok).toBe(false);
+  });
+});
+
+describe("pickPresidentStyle", () => {
+  it("siempre devuelve uno de los tres estilos", () => {
+    for (let seed = 1; seed <= 100; seed += 1) {
+      const style = pickPresidentStyle(seededRng(seed));
+      expect(PRESIDENT_STYLE_IDS).toContain(style);
+    }
   });
 });
 
@@ -124,15 +140,26 @@ describe("assignRoles · regla conserje ⇒ presidente", () => {
     expect(conciergeCount).toBeGreaterThan(0);
   });
 
-  it("con 8 participantes usa los 8 roles exactamente una vez", () => {
-    const participants = makeParticipants(8, 0);
+  it("con 14 participantes usa los 14 roles exactamente una vez", () => {
+    const participants = makeParticipants(14, 0);
     const assignments = assignRoles(participants, seededRng(99));
     const roles = assignments.map((assignment) => assignment.roleId);
-    expect(roles).toHaveLength(8);
+    expect(roles).toHaveLength(14);
     expect(new Set(roles)).toEqual(new Set(ROLE_IDS));
     expect(roles).toContain("concierge");
     expect(roles).toContain("president");
     assertRule(roles);
+  });
+
+  it("con 10 participantes (máximo de partida) reparte 10 roles únicos y cumple la regla", () => {
+    const participants = makeParticipants(6, 4);
+    for (let seed = 1; seed <= 200; seed += 1) {
+      const assignments = assignRoles(participants, seededRng(seed));
+      const roles = assignments.map((assignment) => assignment.roleId);
+      expect(roles).toHaveLength(10);
+      expect(new Set(roles).size).toBe(10);
+      assertRule(roles);
+    }
   });
 
   it("con IA y humanos mezclados mantiene la regla y asigna a todos", () => {
@@ -171,6 +198,6 @@ describe("assignRoles · regla conserje ⇒ presidente", () => {
   });
 
   it("lanza error si hay más participantes que roles", () => {
-    expect(() => assignRoles(makeParticipants(9, 0))).toThrow(/solo hay 8/);
+    expect(() => assignRoles(makeParticipants(15, 0))).toThrow(/solo hay 14/);
   });
 });

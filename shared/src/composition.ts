@@ -1,5 +1,10 @@
 import { GAME_CONFIG } from "./config.js";
-import { ROLE_IDS, type RoleId } from "./roles.js";
+import {
+  PRESIDENT_STYLE_IDS,
+  ROLE_IDS,
+  type PresidentStyleId,
+  type RoleId,
+} from "./roles.js";
 
 export type Rng = () => number;
 
@@ -99,6 +104,11 @@ function pickRandom<T>(items: readonly T[], rng: Rng): T {
     throw new Error("pickRandom: índice fuera de rango");
   }
   return item;
+}
+
+/** Elige al azar el estilo de presidencia de la partida. */
+export function pickPresidentStyle(rng: Rng = Math.random): PresidentStyleId {
+  return pickRandom(PRESIDENT_STYLE_IDS, rng);
 }
 
 /**

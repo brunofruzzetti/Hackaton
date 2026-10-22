@@ -4,15 +4,19 @@ import {
   GAME_CONFIG,
   PROPOSALS,
   assignRoles,
+  pickPresidentStyle,
   planComposition,
   type Phase,
   type PlayerKind,
   type PlayerState,
+  type PresidentStyleId,
   type RoleId,
   type RoomState,
   type TranscriptEntry,
   type TranscriptSource,
+  type VoiceProfile,
 } from "@shared/index";
+import { getAiVoiceProfile } from "./ai/voices.js";
 import { GameError } from "./errors.js";
 
 /** Códigos sin vocales para evitar confusiones al dictarlos por voz. */
@@ -30,6 +34,8 @@ export interface RoomPlayer {
   silencedUntil: number | null;
   orderWarnings: number;
   joinedAt: number;
+  /** Solo en IA: perfil de voz para speechSynthesis. */
+  voiceProfile: VoiceProfile | null;
 }
 
 export interface Room {
@@ -43,6 +49,18 @@ export interface Room {
   createdAt: number;
   lastActivityAt: number;
   discussionEndsAt: number | null;
+  presidentStyleId: PresidentStyleId | null;
+  /** Dirección de vecinos IA. */
+  lastHumanSpokeAt: number;
+  lastAiSpokeAt: number;
+  aiNextAttemptAt: number;
+  aiSpeakingUntil: number;
+  aiSpeakingPlayerId: string | null;
+  aiTurns: Map<string, number>;
+  aiTurnCursor: number;
+  aiGenerationPending: boolean;
+  aiGenerationToken: number;
+  judgeSpeakingUntil: number;
 }
 
 export interface JoinResult {
@@ -83,10 +101,11 @@ function makeHuman(name: string, isHost: boolean): RoomPlayer {
     silencedUntil: null,
     orderWarnings: 0,
     joinedAt: Date.now(),
+    voiceProfile: null,
   };
 }
 
-function makeAi(name: string): RoomPlayer {
+function makeAi(name: string, aiIndex: number): RoomPlayer {
   return {
     id: `ai-${randomUUID()}`,
     name,
@@ -99,6 +118,7 @@ function makeAi(name: string): RoomPlayer {
     silencedUntil: null,
     orderWarnings: 0,
     joinedAt: Date.now(),
+    voiceProfile: getAiVoiceProfile(aiIndex, name),
   };
 }
 
@@ -133,6 +153,17 @@ export class RoomStore {
       createdAt: now,
       lastActivityAt: now,
       discussionEndsAt: null,
+      presidentStyleId: null,
+      lastHumanSpokeAt: now,
+      lastAiSpokeAt: 0,
+      aiNextAttemptAt: 0,
+      aiSpeakingUntil: 0,
+      aiSpeakingPlayerId: null,
+      aiTurns: new Map(),
+      aiTurnCursor: 0,
+      aiGenerationPending: false,
+      aiGenerationToken: 0,
+      judgeSpeakingUntil: 0,
     };
     this.rooms.set(code, room);
     console.log(`[rooms] Sala ${code} creada por ${host.name} (${host.id})`);
@@ -218,13 +249,16 @@ export class RoomStore {
       throw new GameError("AI_LIMIT", `Máximo ${GAME_CONFIG.MAX_AI_PLAYERS} vecinos IA.`);
     }
     if (room.players.size >= GAME_CONFIG.MAX_PARTICIPANTS) {
-      throw new GameError("ROOM_FULL", "La sala está llena (máximo 8 participantes).");
+      throw new GameError(
+        "ROOM_FULL",
+        `La sala está llena (máximo ${GAME_CONFIG.MAX_PARTICIPANTS} participantes).`,
+      );
     }
 
     const usedNames = new Set([...room.players.values()].map((player) => player.name));
     const availableName = AI_NAMES.find((name) => !usedNames.has(name));
     const name = availableName ?? `Vecino IA ${aiCount + 1}`;
-    const player = makeAi(name);
+    const player = makeAi(name, aiCount);
     room.players.set(player.id, player);
     room.lastActivityAt = Date.now();
     console.log(`[rooms] IA "${name}" añadida a ${room.code} por el anfitrión`);
@@ -287,6 +321,9 @@ export class RoomStore {
     room.phase = "ROLES";
     room.round = 1;
     room.lastActivityAt = Date.now();
+    room.presidentStyleId = assignments.some((assignment) => assignment.roleId === "president")
+      ? pickPresidentStyle()
+      : null;
 
     const summary = assignments
       .map((assignment) => {
@@ -294,7 +331,43 @@ export class RoomStore {
         return `${player?.name ?? assignment.playerId}=${assignment.roleId}`;
       })
       .join(", ");
-    console.log(`[rooms] Sala ${code} empieza (roles): ${summary}`);
+    console.log(
+      `[rooms] Sala ${code} empieza (roles): ${summary}` +
+        (room.presidentStyleId ? ` · presidencia: ${room.presidentStyleId}` : ""),
+    );
+    return room;
+  }
+
+  /** El anfitrión pasa del reparto de roles a la discusión con temporizador. */
+  startDiscussion(code: string, requesterId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const requester = this.requirePlayer(room, requesterId);
+    if (!requester.isHost) {
+      throw new GameError("NOT_HOST", "Solo el anfitrión puede comenzar la discusión.");
+    }
+    if (room.phase !== "ROLES") {
+      throw new GameError("NOT_IN_ROLES", "La discusión solo puede empezar tras el reparto de roles.");
+    }
+
+    const now = Date.now();
+    room.phase = "DISCUSSION";
+    room.round = 1;
+    room.discussionEndsAt = now + GAME_CONFIG.DISCUSSION_SECONDS * 1000;
+    room.lastHumanSpokeAt = now;
+    room.lastAiSpokeAt = 0;
+    room.aiNextAttemptAt = 0;
+    room.aiSpeakingUntil = 0;
+    room.aiSpeakingPlayerId = null;
+    room.aiTurns.clear();
+    room.aiTurnCursor = 0;
+    room.aiGenerationPending = false;
+    room.aiGenerationToken += 1;
+    room.judgeSpeakingUntil = 0;
+    room.lastActivityAt = now;
+
+    console.log(
+      `[rooms] Sala ${code}: comienza la discusión (${GAME_CONFIG.DISCUSSION_SECONDS}s, ronda ${room.round})`,
+    );
     return room;
   }
 
@@ -351,7 +424,103 @@ export class RoomStore {
     if (!player || player.kind !== "human") return false;
     if (player.speaking === speaking) return false;
     player.speaking = speaking;
+    if (speaking) {
+      room.lastHumanSpokeAt = Date.now();
+      // Un humano toma la palabra: se corta cualquier IA en curso.
+      this.cancelAiSpeech(room.code);
+    }
     return true;
+  }
+
+  /**
+   * Cancela la IA que esté hablando o generando. Se llama cuando un humano empieza
+   * a hablar o cuando cambia la fase.
+   */
+  cancelAiSpeech(code: string): Room | null {
+    const room = this.rooms.get(normalizeCode(code));
+    if (!room) return null;
+    room.aiGenerationToken += 1;
+    room.aiGenerationPending = false;
+    room.aiSpeakingUntil = 0;
+    if (room.aiSpeakingPlayerId) {
+      const speaker = room.players.get(room.aiSpeakingPlayerId);
+      if (speaker) speaker.speaking = false;
+      room.aiSpeakingPlayerId = null;
+    }
+    return room;
+  }
+
+  /** Registra una intervención de IA y la marca como hablante durante `durationMs`. */
+  startAiSpeech(
+    code: string,
+    playerId: string,
+    text: string,
+    durationMs: number,
+  ): { room: Room; entry: TranscriptEntry } {
+    const room = this.getRoomOrThrow(code);
+    const player = room.players.get(playerId);
+    if (!player || player.kind !== "ai" || !player.roleId) {
+      throw new GameError("PLAYER_NOT_FOUND", "El vecino IA no está listo para hablar.");
+    }
+    const now = Date.now();
+    const entry = this.addTranscriptEntry(code, {
+      playerId: player.id,
+      playerName: player.name,
+      roleId: player.roleId,
+      text,
+      source: "ai",
+    });
+    player.speaking = true;
+    room.aiSpeakingPlayerId = player.id;
+    room.aiSpeakingUntil = now + durationMs;
+    room.lastAiSpokeAt = now;
+    room.aiNextAttemptAt = 0;
+    room.aiTurns.set(player.id, (room.aiTurns.get(player.id) ?? 0) + 1);
+    return { room, entry };
+  }
+
+  finishAiSpeech(code: string): Room | null {
+    const room = this.rooms.get(normalizeCode(code));
+    if (!room) return null;
+    if (room.aiSpeakingPlayerId) {
+      const speaker = room.players.get(room.aiSpeakingPlayerId);
+      if (speaker) speaker.speaking = false;
+      room.aiSpeakingPlayerId = null;
+    }
+    room.aiSpeakingUntil = 0;
+    return room;
+  }
+
+  /** Tick del reloj de sala: fin de discusión y fin del turno de una IA. */
+  tick(now = Date.now()): string[] {
+    const changed: string[] = [];
+    for (const room of this.rooms.values()) {
+      if (room.phase === "DISCUSSION" && room.discussionEndsAt !== null && now >= room.discussionEndsAt) {
+        room.phase = "JUDGMENT";
+        room.discussionEndsAt = null;
+        this.cancelAiSpeech(room.code);
+        for (const player of room.players.values()) {
+          player.speaking = false;
+        }
+        room.lastActivityAt = now;
+        changed.push(room.code);
+        console.log(`[rooms] Sala ${room.code}: fin de la discusión, comienza el juicio`);
+        continue;
+      }
+      if (room.aiSpeakingPlayerId && now >= room.aiSpeakingUntil) {
+        this.finishAiSpeech(room.code);
+        changed.push(room.code);
+      }
+    }
+    return changed;
+  }
+
+  getDiscussionRooms(): Room[] {
+    return [...this.rooms.values()].filter((room) => room.phase === "DISCUSSION");
+  }
+
+  getRoom(code: string): Room | null {
+    return this.rooms.get(normalizeCode(code)) ?? null;
   }
 
   disconnect(code: string, playerId: string): boolean {
@@ -410,6 +579,7 @@ export class RoomStore {
       transcript: [...room.transcript],
       createdAt: room.createdAt,
       discussionEndsAt: room.discussionEndsAt,
+      presidentStyleId: room.presidentStyleId,
     };
   }
 

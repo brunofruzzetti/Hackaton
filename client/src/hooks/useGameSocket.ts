@@ -4,6 +4,7 @@ import type {
   RoomState,
   SelfState,
   ServerMessage,
+  TranscriptEntry,
 } from "@shared/index";
 import {
   clearSession,
@@ -12,6 +13,7 @@ import {
   saveSession,
   type Session,
 } from "../lib/session";
+import { tts } from "../lib/tts";
 
 export type ConnectionStatus =
   | "idle"
@@ -48,6 +50,7 @@ export interface GameSocket {
   you: SelfState | null;
   session: Session | null;
   error: string | null;
+  judgeMessage: string | null;
   clearError: () => void;
   showError: (message: string) => void;
   createRoom: (name: string) => void;
@@ -55,6 +58,7 @@ export interface GameSocket {
   addAi: () => void;
   removeAi: (playerId: string) => void;
   startGame: () => void;
+  startDiscussion: () => void;
   sendChat: (text: string) => void;
   setSpeaking: (speaking: boolean) => void;
   leave: () => void;
@@ -66,12 +70,14 @@ export function useGameSocket(): GameSocket {
   const [you, setYou] = useState<SelfState | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [judgeMessage, setJudgeMessage] = useState<string | null>(null);
 
   const roomRef = useRef<RoomState | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const attemptsRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
+  const judgeTimerRef = useRef<number | null>(null);
 
   const applyRoom = useCallback((next: RoomState | null) => {
     roomRef.current = next;
@@ -144,6 +150,13 @@ export function useGameSocket(): GameSocket {
     };
   }
 
+  function appendTranscriptEntry(entry: TranscriptEntry): void {
+    const current = roomRef.current;
+    if (!current) return;
+    if (current.transcript.some((item) => item.id === entry.id)) return;
+    applyRoom({ ...current, transcript: [...current.transcript, entry] });
+  }
+
   function handleServerMessage(message: ServerMessage): void {
     switch (message.type) {
       case "joined": {
@@ -170,10 +183,26 @@ export function useGameSocket(): GameSocket {
         break;
       }
       case "transcript_append": {
-        const current = roomRef.current;
-        if (!current) break;
-        if (current.transcript.some((entry) => entry.id === message.entry.id)) break;
-        applyRoom({ ...current, transcript: [...current.transcript, message.entry] });
+        appendTranscriptEntry(message.entry);
+        break;
+      }
+      case "neighbor_says": {
+        appendTranscriptEntry(message.entry);
+        tts.speak(message.entry.text, message.voice);
+        break;
+      }
+      case "judge_says": {
+        tts.speak(message.text, message.voice);
+        setJudgeMessage(message.text);
+        if (judgeTimerRef.current !== null) window.clearTimeout(judgeTimerRef.current);
+        judgeTimerRef.current = window.setTimeout(() => {
+          judgeTimerRef.current = null;
+          setJudgeMessage(null);
+        }, 6000);
+        break;
+      }
+      case "tts_cancel": {
+        tts.cancel();
         break;
       }
       case "error": {
@@ -222,6 +251,11 @@ export function useGameSocket(): GameSocket {
         window.clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
+      if (judgeTimerRef.current !== null) {
+        window.clearTimeout(judgeTimerRef.current);
+        judgeTimerRef.current = null;
+      }
+      tts.cancel();
       const socket = socketRef.current;
       socketRef.current = null;
       sessionRef.current = null;
@@ -244,6 +278,7 @@ export function useGameSocket(): GameSocket {
   }
 
   function createRoom(name: string): void {
+    tts.prime();
     clearSession();
     sessionRef.current = null;
     applyRoom(null);
@@ -255,6 +290,7 @@ export function useGameSocket(): GameSocket {
   }
 
   function joinRoom(code: string, name: string): void {
+    tts.prime();
     clearSession();
     sessionRef.current = null;
     applyRoom(null);
@@ -274,7 +310,13 @@ export function useGameSocket(): GameSocket {
   }
 
   function startGame(): void {
+    tts.prime();
     sendAction({ type: "start_game" });
+  }
+
+  function startDiscussion(): void {
+    tts.prime();
+    sendAction({ type: "start_discussion" });
   }
 
   function sendChat(text: string): void {
@@ -305,10 +347,12 @@ export function useGameSocket(): GameSocket {
     }
     sessionRef.current = null;
     clearSession();
+    tts.cancel();
     applyRoom(null);
     setYou(null);
     setSession(null);
     setError(null);
+    setJudgeMessage(null);
     setStatus("idle");
     window.history.replaceState(null, "", "/");
   }
@@ -319,6 +363,7 @@ export function useGameSocket(): GameSocket {
     you,
     session,
     error,
+    judgeMessage,
     clearError: () => setError(null),
     showError: (message: string) => setError(message),
     createRoom,
@@ -326,6 +371,7 @@ export function useGameSocket(): GameSocket {
     addAi,
     removeAi,
     startGame,
+    startDiscussion,
     sendChat,
     setSpeaking,
     leave,

@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   GAME_CONFIG,
-  ROLES,
   aiPlayers,
+  getEffectiveRole,
   humanPlayers,
   planComposition,
   type Phase,
@@ -32,10 +32,12 @@ interface LobbyProps {
   onAddAi: () => void;
   onRemoveAi: (playerId: string) => void;
   onStart: () => void;
+  onStartDiscussion: () => void;
   onLeave: () => void;
   onSendChat: (text: string) => void;
   onSpeakingChange: (speaking: boolean) => void;
   onError: (message: string) => void;
+  judgeMessage: string | null;
 }
 
 function initials(name: string): string {
@@ -62,13 +64,30 @@ export function Lobby({
   onAddAi,
   onRemoveAi,
   onStart,
+  onStartDiscussion,
   onLeave,
   onSendChat,
   onSpeakingChange,
   onError,
+  judgeMessage,
 }: LobbyProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    setNow(Date.now());
+    if (room.phase !== "DISCUSSION") return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [room.phase, room.discussionEndsAt]);
+
+  const remainingSeconds = room.discussionEndsAt
+    ? Math.max(0, Math.ceil((room.discussionEndsAt - now) / 1000))
+    : null;
+  const countdown = remainingSeconds !== null
+    ? `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, "0")}`
+    : null;
 
   const humans = humanPlayers(room.players);
   const ais = aiPlayers(room.players);
@@ -118,8 +137,16 @@ export function Lobby({
         </div>
         <span className={`phase-pill phase-${room.phase.toLowerCase()}`}>
           {PHASE_LABELS[room.phase]}
+          {room.phase === "DISCUSSION" && countdown ? ` · ${countdown}` : ""}
         </span>
       </header>
+
+      {judgeMessage && (
+        <div className="judge-overlay" role="status">
+          <span className="judge-megaphone" aria-hidden="true">📢</span>
+          <p>{judgeMessage}</p>
+        </div>
+      )}
 
       <section className="code-card">
         <p className="label">Código para invitar</p>
@@ -155,6 +182,7 @@ export function Lobby({
       <TranscriptPanel
         entries={room.transcript}
         youId={you.playerId}
+        presidentStyleId={room.presidentStyleId}
         chatDisabled={status !== "connected"}
         onSendChat={onSendChat}
       />
@@ -169,7 +197,9 @@ export function Lobby({
 
         <ul className="player-list">
           {players.map((player) => {
-            const role = player.roleId ? ROLES[player.roleId] : null;
+            const role = player.roleId
+              ? getEffectiveRole(player.roleId, room.presidentStyleId)
+              : null;
             const isSpeaking = speakingIds.has(player.id) && player.connected;
             return (
               <li
@@ -270,6 +300,53 @@ export function Lobby({
         )}
       </section>
 
+      {room.phase === "ROLES" && (
+        <section className="card discussion-card">
+          <div className="card-head">
+            <h2>La junta va a comenzar</h2>
+            <span className="badge">4:00</span>
+          </div>
+          <p className="hint">
+            Cuando empiece la discusión, habla por LiveKit. Los vecinos IA escucharán y
+            intervendrán cuando haya un silencio. El juez solo aparecerá si el portal se
+            desmadra.
+          </p>
+          {isHost ? (
+            <button className="btn btn-primary" type="button" onClick={onStartDiscussion}>
+              Comenzar discusión
+            </button>
+          ) : (
+            <p className="hint center">Esperando a que el anfitrión abra la discusión…</p>
+          )}
+        </section>
+      )}
+
+      {room.phase === "DISCUSSION" && (
+        <section className="card discussion-card live">
+          <div className="card-head">
+            <h2>Discusión en curso</h2>
+            <span className="timer">{countdown ?? "4:00"}</span>
+          </div>
+          <p className="hint">
+            La IA escucha. Si hablas, se cancelan las respuestas pendientes de los vecinos IA.
+            El juez interviene si hay 4 o más personas hablando a la vez.
+          </p>
+        </section>
+      )}
+
+      {room.phase === "JUDGMENT" && (
+        <section className="card discussion-card">
+          <div className="card-head">
+            <h2>El juez está deliberando</h2>
+            <span className="badge">Acta</span>
+          </div>
+          <p className="hint">
+            La discusión ha terminado. El juez revisará las tareas y las intervenciones de la
+            ronda. Los resultados y el dinero llegarán en el siguiente hito.
+          </p>
+        </section>
+      )}
+
       {!inLobby && (
         <section className="card">
           <h2>Roles repartidos</h2>
@@ -279,7 +356,9 @@ export function Lobby({
           </p>
           <div className="role-grid">
             {players.map((player) => {
-              const role = player.roleId ? ROLES[player.roleId] : null;
+              const role = player.roleId
+                ? getEffectiveRole(player.roleId, room.presidentStyleId)
+                : null;
               if (!role) return null;
               return (
                 <article className="role-card" key={player.id}>

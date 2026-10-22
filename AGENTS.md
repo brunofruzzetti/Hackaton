@@ -29,8 +29,11 @@ amueblar el piso. Tras 3 rondas gana el piso de mayor valor.
   transporte WS, heartbeats y difusión. `server/src/livekit.ts`: JWT de LiveKit.
 - `server/src/stt/`: interfaz `SttProvider`, implementaciones OpenAI/Deepgram/mock y
   `transcribeWithRetry`.
-- `client/src/hooks/useGameSocket.ts`: conexión WS, reconexión y estado de sala.
+- `server/src/ai/`: `llm.ts` (DeepSeek/mock), `prompt.ts` (prompt de rol), `director.ts`
+  (cola de turnos IA) y `voices.ts` (perfiles TTS).
+- `client/src/hooks/useGameSocket.ts`: conexión WS, reconexión, estado de sala y eventos TTS.
   `client/src/hooks/useLiveKit.ts`: room de audio, hablantes y track local.
+  `client/src/lib/tts.ts`: `TtsProvider` sobre `speechSynthesis`.
 - `client/src/components/PushToTalk.tsx`: MediaRecorder sobre el track de LiveKit,
   subida HTTP y reintento. `AudioPanel.tsx` y `TranscriptPanel.tsx`: UI de audio/acta.
 
@@ -60,20 +63,30 @@ amueblar el piso. Tras 3 rondas gana el piso de mayor valor.
   3 rondas.
 - IA hablan por turnos, nunca a la vez; no empiezan si un humano habló en los últimos
   2–3 s o si el juez habla. Si un humano empieza, se cancelan respuestas IA pendientes y
-  los clientes llaman a `speechSynthesis.cancel()`.
+  los clientes llaman a `speechSynthesis.cancel()`. Máximo 3 turnos por IA y ronda.
 - Transcripción compartida ordenada: `[jugador | rol | texto]`. El chat de texto también
   entra en la transcripción.
 - Reconexión con mismo código + nombre sin romper la partida.
-- Juez moderador: 3+ humanos solapados >2 s ⇒ aviso TTS, cooldown 15 s, silencio forzado
-  opcional de 3 s (`JUDGE_FORCE_MUTE=true` por defecto) y contador de avisos por ronda.
-- Puntuación final: el modelo devuelve notas 0–100; `total_pct` se calcula **en código**
-  como media ponderada. Dinero = `total_pct * 10` (configurable).
+- Juez moderador: **4+ humanos** solapados >2 s ⇒ aviso TTS, cooldown 15 s, silencio
+  forzado opcional de 3 s (`JUDGE_FORCE_MUTE=true` por defecto) y contador de avisos por
+  ronda. El juez no es un personaje: es un altavoz omnipresente.
+- Puntuación final: el modelo devuelve notas 0–100 y el estado de cada tarea; `total_pct`
+  se calcula **en código** como media ponderada (50% tareas). Dinero = `total_pct * 10`
+  (configurable). No hay voto de jugadores para decidir el resultado.
 - Roles discretos: conserje y okupa no se penalizan por hablar poco si cumplen su cliché.
 
 ## Roles (fuente única: `shared/src/roles.ts`)
 
-Cotilla, moroso, presidente buenazo, el de las derramas, el que no se entera, okupa
-(sin voto), la vieja de los gatos, conserje (sin voto, sujetavelas del presidente).
+14 roles: cotilla, moroso, presidente (3 estilos), derramas, despistado, okupa (sin voto),
+gatos, conserje (sin voto), cuñado, manitas, ex-presidente, inquilino (sin voto),
+teletrabajador y eco-vecino. Cada partida sortea 10 de 14.
+
+Presidencia aleatoria: **dictador criticón**, **a su pesar** o **influencer**. Es un solo
+rol (`president`) con estilo; no pueden coincidir dos presidentes. La regla
+conserje ⇒ presidente sigue aplicándose.
+
+Límites: **3-10 participantes**, **máximo 4 IA**, **4 minutos de discusión**. Las tasas de
+tareas (Hito 4) son 4 por jugador y ronda, con un mazo de 24 por rol.
 
 ## Flujo de trabajo
 
@@ -87,12 +100,12 @@ Cotilla, moroso, presidente buenazo, el de las derramas, el que no se entera, ok
 0. Estructura, scripts, docs. ✅
 1. Salas, lobby WS, roles, composición + tests. ✅
 2. LiveKit, mute, hablantes, PTT + STT + transcripción. ✅
-3. Vecinos IA, TTS, cola de turnos, regla de silencio.
-4. Asignación de roles en partida y prompts de personalidad.
+3. Vecinos IA, TTS, cola de turnos, regla de silencio. ✅
+4. Tareas por ronda, temporizador y escena 2D del portal.
 5. Juez moderador en directo (solapamiento, aviso, mute forzado, cooldown).
-6. Juez de final de ronda y dinero.
-7. Tienda y piso.
-8. Pulido.
+6. Juez de final de ronda, tareas y dinero.
+7. Tienda y piso 2D.
+8. Acciones de rol, sonidos, estadísticas, modo espectador y pulido.
 
 ## Pruebas
 

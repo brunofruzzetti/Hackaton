@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ROLES, type TranscriptEntry } from "@shared/index";
+import {
+  getEffectiveRole,
+  type PresidentStyleId,
+  type TranscriptEntry,
+} from "@shared/index";
 
 interface TranscriptPanelProps {
   entries: TranscriptEntry[];
   youId: string;
+  presidentStyleId: PresidentStyleId | null;
   chatDisabled: boolean;
   onSendChat: (text: string) => void;
 }
@@ -18,6 +23,7 @@ function formatTime(timestamp: number): string {
 export function TranscriptPanel({
   entries,
   youId,
+  presidentStyleId,
   chatDisabled,
   onSendChat,
 }: TranscriptPanelProps) {
@@ -52,14 +58,18 @@ export function TranscriptPanel({
           </p>
         ) : (
           entries.map((entry) => {
-            const roleName = entry.roleId ? ROLES[entry.roleId].name : "Vecino";
+            const roleName = entry.roleId
+              ? getEffectiveRole(entry.roleId, presidentStyleId).name
+              : "Vecino";
             return (
               <article
                 key={entry.id}
                 className={`transcript-entry ${entry.playerId === youId ? "own" : ""}`}
               >
                 <div className="transcript-meta">
-                  <span aria-hidden="true">{entry.source === "voice" ? "🎙️" : "💬"}</span>
+                  <span aria-hidden="true">
+                    {entry.source === "voice" ? "🎙️" : entry.source === "ai" ? "🤖" : "💬"}
+                  </span>
                   <span className="transcript-label">
                     [{entry.playerName} | {roleName}]
                   </span>

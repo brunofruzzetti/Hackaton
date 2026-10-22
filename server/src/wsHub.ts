@@ -3,9 +3,11 @@ import { WebSocket, WebSocketServer, type RawData } from "ws";
 import {
   clientMessageSchema,
   type ClientMessage,
+  type RoleId,
   type ServerErrorCode,
   type ServerMessage,
   type TranscriptEntry,
+  type VoiceProfile,
 } from "@shared/index";
 import { GameError } from "./errors.js";
 import type { RoomStore } from "./roomStore.js";
@@ -168,6 +170,11 @@ export class WsHub {
           this.broadcastRoom(session.code);
           return;
         }
+        case "start_discussion": {
+          this.store.startDiscussion(session.code, session.playerId);
+          this.broadcastRoom(session.code);
+          return;
+        }
         case "chat": {
           const entry = this.store.chat(session.code, session.playerId, message.text);
           this.broadcast(session.code, { type: "transcript_append", entry });
@@ -180,6 +187,13 @@ export class WsHub {
             message.speaking,
           );
           if (changed) {
+            if (message.speaking) {
+              // Un humano toma la palabra: los clientes deben cortar el TTS de la IA.
+              this.broadcast(session.code, {
+                type: "tts_cancel",
+                reason: "human_speaking",
+              });
+            }
             this.broadcastRoom(session.code);
           }
           return;
@@ -248,6 +262,34 @@ export class WsHub {
   /** Difunde una entrada de transcripción ya creada (voz transcrita, sistema...). */
   broadcastTranscript(code: string, entry: TranscriptEntry): void {
     this.broadcast(code, { type: "transcript_append", entry });
+  }
+
+  /** Expuesto para el director de IA y el reloj de fases. */
+  broadcastRoomState(code: string): void {
+    this.broadcastRoom(code);
+  }
+
+  broadcastNeighborSays(
+    code: string,
+    entry: TranscriptEntry,
+    playerId: string,
+    roleId: RoleId,
+    voice: VoiceProfile,
+  ): void {
+    this.broadcast(code, {
+      type: "neighbor_says",
+      entry,
+      playerId,
+      roleId,
+      voice,
+    });
+  }
+
+  broadcastTtsCancel(
+    code: string,
+    reason: "human_speaking" | "phase_change" | "server",
+  ): void {
+    this.broadcast(code, { type: "tts_cancel", reason });
   }
 
   private broadcastRoom(code: string): void {

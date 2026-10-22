@@ -7,6 +7,8 @@ import {
   type PublicConfig,
   type SttResponse,
 } from "@shared/index";
+import { createLlmService } from "./ai/llm.js";
+import { AiDirector } from "./ai/director.js";
 import { env, livekitConfigured, logEnvSummary } from "./env.js";
 import { GameError } from "./errors.js";
 import { createLivekitToken, getLivekitConfigFromEnv } from "./livekit.js";
@@ -17,6 +19,9 @@ import { WsHub } from "./wsHub.js";
 const app = Fastify({ logger: true });
 const store = new RoomStore();
 const hub = new WsHub(app.server, store);
+const llm = createLlmService();
+const aiDirector = new AiDirector(store, hub, llm);
+aiDirector.start();
 const sttProvider = createSttProvider(env.STT_PROVIDER, {
   openai: env.OPENAI_API_KEY,
   deepgram: env.DEEPGRAM_API_KEY,
@@ -26,10 +31,12 @@ const publicConfig: PublicConfig = {
   livekitConfigured,
   livekitUrl: livekitConfigured ? (env.LIVEKIT_URL ?? null) : null,
   sttProvider: env.STT_PROVIDER,
+  aiProvider: llm.name,
   judgeForceMute: env.JUDGE_FORCE_MUTE,
   maxParticipants: GAME_CONFIG.MAX_PARTICIPANTS,
   maxAiPlayers: GAME_CONFIG.MAX_AI_PLAYERS,
   minParticipants: GAME_CONFIG.MIN_PARTICIPANTS,
+  discussionSeconds: GAME_CONFIG.DISCUSSION_SECONDS,
 };
 
 function apiError(
@@ -230,6 +237,13 @@ app.post(
     }
   },
 );
+
+const clockTimer = setInterval(() => {
+  for (const code of store.tick()) {
+    hub.broadcastRoomState(code);
+  }
+}, 1000);
+clockTimer.unref();
 
 const cleanupTimer = setInterval(() => store.cleanupStaleRooms(), 10 * 60 * 1000);
 cleanupTimer.unref();

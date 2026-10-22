@@ -1,5 +1,12 @@
 import { z } from "zod";
-import type { PlayerState, RoomState, SelfState, TranscriptEntry } from "./types.js";
+import type { RoleId } from "./roles.js";
+import type {
+  PlayerState,
+  RoomState,
+  SelfState,
+  TranscriptEntry,
+  VoiceProfile,
+} from "./types.js";
 
 const displayNameSchema = z
   .string()
@@ -31,6 +38,7 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("add_ai") }),
   z.object({ type: z.literal("remove_ai"), playerId: z.string().min(1).max(64) }),
   z.object({ type: z.literal("start_game") }),
+  z.object({ type: z.literal("start_discussion") }),
   z.object({
     type: z.literal("chat"),
     text: z.string().trim().min(1, "Mensaje vacío").max(280, "Máximo 280 caracteres"),
@@ -50,6 +58,7 @@ export type ServerErrorCode =
   | "GAME_STARTED"
   | "NOT_HOST"
   | "NOT_IN_LOBBY"
+  | "NOT_IN_ROLES"
   | "INVALID_COMPOSITION"
   | "AI_LIMIT"
   | "PLAYER_NOT_FOUND"
@@ -69,6 +78,20 @@ export type ServerMessage =
     }
   | { type: "room_state"; state: RoomState }
   | { type: "transcript_append"; entry: TranscriptEntry }
+  | {
+      type: "neighbor_says";
+      entry: TranscriptEntry;
+      playerId: string;
+      roleId: RoleId;
+      voice: VoiceProfile;
+    }
+  | {
+      type: "judge_says";
+      text: string;
+      kind: "order" | "result" | "event";
+      voice: VoiceProfile;
+    }
+  | { type: "tts_cancel"; reason: "human_speaking" | "phase_change" | "server" }
   | { type: "error"; code: ServerErrorCode; message: string }
   | { type: "notice"; message: string }
   | { type: "pong"; at: number };

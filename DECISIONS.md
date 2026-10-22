@@ -143,3 +143,54 @@ completo de voz sin llamar a APIs externas.
 El entorno de desarrollo no tenía Docker; se validó el flujo con
 `livekit-server --dev` (release oficial de Windows) en `ws://localhost:7880` y las claves
 `devkey`/`secret`. El README y `docs/hito-2.md` documentan ambas opciones.
+
+## Hito 3 · Nuevo diseño de roles, IA y TTS
+
+### D-027 · 14 roles, máximo 10 jugadores y 4 IA
+Se añaden cuñado, manitas, ex-presidente, inquilino, teletrabajador y eco-vecino a los 8
+roles originales. La bolsa tiene 14 roles y cada partida sortea 10; por tanto, 4 roles
+quedan fuera. El máximo sube a 10 participantes y se mantiene en 4 el número de IA.
+La ronda de discusión sube a 4 minutos para dar espacio a 10 jugadores y 4 tareas.
+
+### D-028 · Tres estilos de presidencia, no tres roles
+El rol `president` conserva su id para que la regla conserje ⇒ presidente siga siendo
+simple. Al empezar la partida se elige al azar uno de tres estilos: dictador, a su pesar o
+influencer. El estilo cambia nombre, descripción, comportamientos y prompt, y se guarda en
+`RoomState.presidentStyleId`. No puede haber dos presidentes en la misma partida.
+
+### D-029 · Vecinos IA: DeepSeek con fallback mock
+`server/src/ai/llm.ts` usa el SDK de OpenAI con `baseURL: https://api.deepseek.com` y
+`model: deepseek-chat`. Si falta `DEEPSEEK_API_KEY` o `LLM_PROVIDER=mock`, se usa un
+generador local con líneas por rol. Esto permite probar turnos y TTS sin gastar API.
+El proveedor efectivo se anuncia en logs y en `/api/config`.
+
+### D-030 · Reglas de turno de las IA
+El director hace tick cada segundo. Una IA solo puede empezar si:
+- la fase es `DISCUSSION`,
+- ningún humano está hablando,
+- han pasado 2,5 s desde la última intervención humana,
+- han pasado 9 s desde la última IA,
+- no hay otra IA hablando o generando,
+- el juez no está hablando (campo preparado para el Hito 5),
+- le quedan turnos (máximo 3 por ronda).
+
+La duración del estado “hablando” se estima con base + ms por carácter. Si un humano
+empieza a hablar, el servidor invalida la generación en curso, corta el TTS de los clientes
+y desmarca a la IA. Los clientes también llaman a `speechSynthesis.cancel()`.
+
+### D-031 · TTS con speechSynthesis, tras una interfaz
+`client/src/lib/tts.ts` define `TtsProvider`. La implementación actual usa
+`speechSynthesis` y elige voz, pitch y rate según el perfil que envía el servidor. El juez
+tiene un perfil propio, más grave y lento. El volumen es moderado (0,85) y la megafonía no
+se usa para cada evento, solo para intervenciones y avisos importantes.
+
+### D-032 · La fase de discusión empieza a mano
+Tras el reparto (`ROLES`), el anfitrión pulsa **Comenzar discusión**. Así se puede leer el
+rol y probar el micro antes de que corra el temporizador. El servidor fija
+`discussionEndsAt` y, al agotarse, pasa a `JUDGMENT`. La puntuación de esa fase llega en el
+Hito 6.
+
+### D-033 · Cuatro hablantes para el aviso del juez
+Con 10 jugadores, avisar con 3 hablantes sería constante. Se sube el umbral a **4 humanos
+simultáneos durante 2 s**, con cooldown de 15 s y mute de 3 s. Se documenta como cambio
+consciente respecto al 3+ original. El juez silenciará la voz, no el chat de texto.

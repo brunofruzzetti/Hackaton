@@ -12,6 +12,7 @@ const envSchema = z.object({
   STT_PROVIDER: z.enum(["openai", "deepgram", "mock"]).default("openai"),
   OPENAI_API_KEY: z.string().optional(),
   DEEPGRAM_API_KEY: z.string().optional(),
+  LLM_PROVIDER: z.enum(["deepseek", "mock"]).default("deepseek"),
   JUDGE_FORCE_MUTE: z
     .string()
     .optional()
@@ -38,6 +39,10 @@ export function logEnvSummary(): void {
     livekitConfigured ? `configurado (${env.LIVEKIT_URL})` : "NO configurado (audio deshabilitado)",
   );
   console.log("[env] STT:", env.STT_PROVIDER);
-  console.log("[env] DeepSeek:", env.DEEPSEEK_API_KEY ? "configurado" : "NO configurado");
+  console.log(
+    "[env] LLM:",
+    env.LLM_PROVIDER,
+    env.DEEPSEEK_API_KEY || env.LLM_PROVIDER === "mock" ? "" : "(sin DEEPSEEK_API_KEY: se usará mock)",
+  );
   console.log("[env] Silencio forzado del juez:", env.JUDGE_FORCE_MUTE);
 }

@@ -6,14 +6,14 @@
 export const GAME_CONFIG = {
   /** Participantes totales (humanos + IA) para poder empezar. */
   MIN_PARTICIPANTS: 3,
-  /** Máximo de participantes: hay 8 roles y no se repiten. */
-  MAX_PARTICIPANTS: 8,
+  /** Máximo de participantes: hay 14 roles en la bolsa. */
+  MAX_PARTICIPANTS: 10,
   /** Máximo de vecinos IA en una partida. */
   MAX_AI_PLAYERS: 4,
   /** Roles fijos durante toda la partida. */
   ROUNDS: 3,
-  /** Duración de la discusión por ronda (Hito 4). */
-  DISCUSSION_SECONDS: 180,
+  /** Duración de la discusión por ronda (4 min para 10 jugadores). */
+  DISCUSSION_SECONDS: 240,
   /** Longitud del código de sala. */
   ROOM_CODE_LENGTH: 4,
   /** Aforo de la transcripción en memoria por sala. */
@@ -24,7 +24,7 @@ export const GAME_CONFIG = {
 
 export const JUDGE_CONFIG = {
   /** Nº de humanos hablando simultáneamente para que intervenga el juez. */
-  OVERLAP_SPEAKERS: 3,
+  OVERLAP_SPEAKERS: 4,
   /** Tiempo que debe mantenerse el solapamiento (ms). */
   OVERLAP_MS: 2000,
   /** Espera mínima entre intervenciones del juez (ms). */
@@ -35,17 +35,53 @@ export const JUDGE_CONFIG = {
   AI_SILENCE_AFTER_HUMAN_MS: 2500,
   /** Penalización por cada aviso de orden en la ronda. */
   ORDER_WARNING_PENALTY: 10,
-  /** Nº de frases de silencio predefinidas a elegir. */
-  SILENCE_PHRASES_COUNT: 10,
+} as const;
+
+export const AI_CONFIG = {
+  /** Silencio humano mínimo antes de que hable una IA (ms). */
+  SILENCE_AFTER_HUMAN_MS: 2500,
+  /** Tiempo mínimo entre dos intervenciones de IA (ms). */
+  MIN_GAP_MS: 9000,
+  /** Máximo de intervenciones por IA y ronda. */
+  MAX_TURNS_PER_ROUND: 3,
+  /** Líneas de transcripción que recibe el modelo como contexto. */
+  CONTEXT_LINES: 16,
+  /** Longitud máxima de una intervención IA (caracteres). */
+  MAX_LINE_CHARS: 320,
+  /** Límite de espera de la generación (ms). */
+  GENERATION_TIMEOUT_MS: 20000,
+  /** Duración estimada de TTS: base + por carácter (ms). */
+  TTS_BASE_MS: 700,
+  TTS_PER_CHAR_MS: 55,
+} as const;
+
+export const TASK_CONFIG = {
+  /** Tareas que recibe cada jugador al empezar una ronda. */
+  TASKS_PER_PLAYER: 4,
+  /** Tamaño del mazo de cada rol. */
+  TASKS_PER_ROLE: 24,
+  /** Puntos por dificultad. */
+  DIFFICULTY_POINTS: {
+    easy: 1,
+    medium: 2,
+    hard: 3,
+  },
+  /** Reparto por ronda: 1 fácil, 2 medias, 1 difícil. */
+  DRAW_BY_DIFFICULTY: {
+    easy: 1,
+    medium: 2,
+    hard: 1,
+  },
 } as const;
 
 export const SCORING_CONFIG = {
   /** Pesos de la media ponderada que calcula el servidor (suman 1). */
   WEIGHTS: {
-    fidelidad_cliche: 0.4,
-    participacion: 0.2,
-    creatividad: 0.2,
-    reaccion_a_otros: 0.2,
+    tareas: 0.5,
+    fidelidad_cliche: 0.2,
+    participacion: 0.15,
+    creatividad: 0.1,
+    reaccion_a_otros: 0.05,
   },
   /** Dinero ganado por cada punto porcentual. */
   MONEY_PER_PERCENT: 10,
@@ -58,6 +94,8 @@ export const AUDIO_CONFIG = {
   MAX_CLIP_MS: 30000,
   /** Tamaño máximo de un clip subido (bytes). */
   MAX_CLIP_BYTES: 10 * 1024 * 1024,
+  /** Volumen bajo para la megafonía del juez y los vecinos IA. */
+  TTS_VOLUME: 0.85,
 } as const;
 
 /** Propuestas posibles de la comunidad. */
@@ -70,6 +108,8 @@ export const PROPOSALS = [
   "Cambiar las tuberías del edificio",
   "Instalar un sistema de videovigilancia",
   "Reformar el patio interior y poner bancos",
+  "Poner un aparcabicis en el patio",
+  "Cambiar la calefacción central por aerotermia",
 ] as const;
 
 /** Nombres para los vecinos IA. Se usan sin repetir dentro de una sala. */

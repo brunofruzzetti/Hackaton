@@ -1,4 +1,4 @@
-import type { RoleId } from "./roles.js";
+import type { PresidentStyleId, RoleId } from "./roles.js";
 
 /** Fases de una ronda. El orden está fijado por el servidor. */
 export type Phase = "LOBBY" | "ROLES" | "DISCUSSION" | "JUDGMENT" | "RESULTS_SHOP";
@@ -21,7 +21,7 @@ export interface PlayerState {
   orderWarnings: number;
 }
 
-export type TranscriptSource = "voice" | "chat" | "system";
+export type TranscriptSource = "voice" | "chat" | "ai" | "system";
 
 export interface TranscriptEntry {
   id: string;
@@ -31,6 +31,17 @@ export interface TranscriptEntry {
   roleId: RoleId | null;
   text: string;
   source: TranscriptSource;
+}
+
+/** Perfil de voz que el cliente aplica con speechSynthesis. */
+export interface VoiceProfile {
+  /** Índice para elegir entre las voces disponibles del navegador. */
+  voiceIndex: number;
+  pitch: number;
+  rate: number;
+  volume: number;
+  /** Etiqueta para depuración/UI (p. ej. "IA · Manoli"). */
+  label: string;
 }
 
 /** Estado completo que recibe el cliente. */
@@ -44,6 +55,7 @@ export interface RoomState {
   transcript: TranscriptEntry[];
   createdAt: number;
   discussionEndsAt: number | null;
+  presidentStyleId: PresidentStyleId | null;
 }
 
 /** Identidad del jugador que acaba de entrar. */
@@ -51,6 +63,19 @@ export interface SelfState {
   playerId: string;
   name: string;
   isHost: boolean;
+}
+
+/** Configuración pública que el cliente necesita (sin secretos). */
+export interface PublicConfig {
+  livekitConfigured: boolean;
+  livekitUrl: string | null;
+  sttProvider: string;
+  aiProvider: string;
+  judgeForceMute: boolean;
+  maxParticipants: number;
+  maxAiPlayers: number;
+  minParticipants: number;
+  discussionSeconds: number;
 }
 
 /** Respuesta del endpoint que emite tokens de LiveKit. */
@@ -71,15 +96,4 @@ export interface SttResponse {
 export interface ApiErrorBody {
   error: string;
   message: string;
-}
-
-/** Configuración pública que el cliente necesita (sin secretos). */
-export interface PublicConfig {
-  livekitConfigured: boolean;
-  livekitUrl: string | null;
-  sttProvider: string;
-  judgeForceMute: boolean;
-  maxParticipants: number;
-  maxAiPlayers: number;
-  minParticipants: number;
 }

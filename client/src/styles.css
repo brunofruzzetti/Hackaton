@@ -651,6 +651,58 @@ input:focus {
   border: 1px solid #fecaca;
 }
 
+.judge-overlay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #111827;
+  color: #fff;
+  border-left: 4px solid #ef4444;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 14px 30px -20px rgb(0 0 0 / 70%);
+  animation: judge-in 180ms ease-out;
+}
+
+.judge-overlay p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.judge-megaphone {
+  font-size: 1.35rem;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+@keyframes judge-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.discussion-card {
+  border-color: #e7d7b8;
+}
+
+.discussion-card.live {
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 3px rgb(239 68 68 / 8%), var(--shadow);
+}
+
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  background: #111827;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
 .audio-card {
   display: flex;
   flex-direction: column;

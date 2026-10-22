@@ -12,8 +12,8 @@ para amueblar el piso; tras 3 rondas gana el piso de mayor valor.
 | 0 | Monorepo, scripts dev, docs, env | ✅ |
 | 1 | Salas, lobby WS, roles y composición validada | ✅ |
 | 2 | LiveKit, push-to-talk, STT, transcripción compartida | ✅ |
-| 3 | Vecinos IA + TTS + cola de turnos | ⏳ |
-| 4 | Asignación de roles en partida y prompts | ⏳ |
+| 3 | Vecinos IA + TTS + cola de turnos | ✅ |
+| 4 | Tareas por ronda, temporizador y escena 2D | ⏳ |
 | 5 | Juez moderador en directo | ⏳ |
 | 6 | Juez de final de ronda y dinero | ⏳ |
 | 7 | Tienda y piso | ⏳ |
@@ -111,6 +111,30 @@ OPENAI_API_KEY=sk-...
 DEEPGRAM_API_KEY=...
 ```
 
+## Vecinos IA
+
+- Hasta **4 vecinos IA** por partida, con nombre y rol propios.
+- Usan DeepSeek (`deepseek-chat`, `https://api.deepseek.com`) y hablan por turnos.
+- Solo toman la palabra si ningún humano está hablando, han pasado ~2,5 s desde la última
+  intervención humana, no hay otra IA hablando y no ha hablado el juez.
+- Cada IA interviene como máximo **3 veces por ronda**.
+- El servidor emite `neighbor_says`; el cliente lo reproduce con `speechSynthesis`, con una
+  voz/pitch/rate distinto por rol.
+- Si un humano empieza a hablar, se cancela el TTS y se descarta la respuesta IA pendiente.
+- Sin `DEEPSEEK_API_KEY` se puede usar `LLM_PROVIDER=mock` para probar el flujo completo.
+
+```env
+LLM_PROVIDER=deepseek      # deepseek | mock
+DEEPSEEK_API_KEY=sk-...
+```
+
+## Roles y presidencia
+
+La bolsa tiene **14 roles** y cada partida sortea 10 (máximo 10 jugadores). Los roles no se
+repiten. La presidencia tiene **3 estilos aleatorios**: dictador, a su pesar e influencer.
+Si aparece el conserje, el presidente siempre está en la partida y el conserje IA conoce su
+nombre.
+
 ## HTTPS en desarrollo (obligatorio para el micrófono)
 
 En `localhost` el navegador permite el micrófono. Desde el móvil necesitas HTTPS:
@@ -150,8 +174,9 @@ Abre la URL `https://...ngrok-free.app` en el móvil.
 3. El anfitrión añade vecinos IA (máx. 4) hasta cumplir el mínimo de 3 participantes.
 4. Al empezar se reparten roles aleatorios sin repetir, aplicando la regla
    **conserje ⇒ presidente**.
-5. En partida: hablas por LiveKit y mantienes pulsado el botón de push-to-talk para dejar
-   un clip que el servidor transcribe y comparte con todos. El chat de texto es el plan B.
+5. El anfitrión pulsa **Comenzar discusión**: 4 minutos por ronda. Hablas por LiveKit,
+   mantienes pulsado el push-to-talk para dejar un clip transcrito y los vecinos IA
+   intervienen cuando hay silencio. El chat de texto es el plan B.
 
 ## Endpoints
 
@@ -170,3 +195,4 @@ Abre la URL `https://...ngrok-free.app` en el móvil.
 - `DECISIONS.md`: decisiones tomadas ante ambigüedades.
 - `docs/hito-1.md`: pruebas de salas, lobby y composición.
 - `docs/hito-2.md`: pruebas de LiveKit, PTT y transcripción.
+- `docs/hito-3.md`: pruebas de vecinos IA, TTS y turnos.
