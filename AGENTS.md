@@ -41,8 +41,8 @@ fueron eliminados.
 - `client/src/components/JuntaHeader.tsx`: sellos Bo3, llave del portal, fase y calaveras.
 - `client/src/components/PlayerCredential.tsx`: credencial privada plegable y post-it.
 - `client/src/components/NeighborBoard.tsx`: tablero de buzones 2/4 columnas.
-- `client/src/components/PortalScene.tsx`: portal 2D con sillas y mesa frontal; el presidente
-  y el vocal se sientan delante.
+- `client/src/components/PortalScene.tsx`: panorámica cenital con avatares pixel-art sentados
+  en U, alfombra y mesa frontal; el presidente y el vocal se sientan delante.
 - `client/src/components/ContractFolder.tsx`: carpeta azul del contrato de obra.
 - `client/src/components/PlayerDashboard.tsx`: compone header, credencial, contrato y tablero.
 - `client/src/components/VotingPanel.tsx`: nominación, votación pública y firma secreta.

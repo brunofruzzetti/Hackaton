@@ -111,7 +111,7 @@ export function App() {
             privateInfo={game.privateInfo}
             socket={game}
           />
-          <aside className="space-y-4">
+          <aside className="order-first space-y-4 lg:order-none">
             <RuinaAudio session={game.session} status={game.status} />
             <RuinaChat
               room={game.room}

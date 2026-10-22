@@ -369,8 +369,9 @@ tienen la presidencia, votan con probabilidad según bando y firman (sabotaje pr
 si son deshonestas). No tienen socket ni chat; el estado público las marca con `isAi`.
 
 ### D-113 · Escena del portal y voz explícita
-Se añade `PortalScene`: portal 2D con sillas para los vecinos y mesa frontal. El presidente
-siempre aparece en la mesa; cuando hay vocal, este se sienta a su lado y la comisión queda
-destacada. El micro no se solicita automáticamente: `RuinaAudio` muestra `ENTRAR EN LA VOZ`
-y solo entonces pide permiso/publica el track de LiveKit. El chat de texto sigue disponible
-en todo momento.
+Se añade `PortalScene`: panorámica cenital del portal con avatares pixel-art sentados en U,
+alfombra central y mesa frontal. El presidente siempre aparece en la mesa; cuando hay vocal,
+este se sienta a su lado y la comisión queda destacada. El micro no se solicita
+automáticamente: `RuinaAudio` muestra `ENTRAR EN LA VOZ` y solo entonces pide
+permiso/publica el track de LiveKit. El chat de texto sigue disponible en todo momento y en
+móvil aparece antes que el panel de votación.

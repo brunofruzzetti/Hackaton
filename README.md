@@ -128,8 +128,9 @@ La interfaz sigue un estilo **tablón de anuncios de comunidad + neobrutalismo**
 fondo papel `#f4efe6`, bordes negros de 2–4 px, sombras sólidas sin difuminar,
 post-its amarillos, sellos verdes/rojos, carpetas azules y tipografía monoespaciada en
 actas. Los botones usan `active:translate-*` y `active:shadow-none` para dar respuesta
-táctil. El **PortalScene** muestra a los vecinos sentados; en cuanto hay presidente y vocal,
-ambos pasan a la mesa frontal. Probado a 390 px sin scroll horizontal.
+táctil. El **PortalScene** es una panorámica cenital del portal: avatares pixel-art sentados
+en U, alfombra central y mesa frontal. El presidente y el vocal pasan a la mesa; el resto
+ocupa las sillas. Probado a 390 px sin scroll horizontal.
 
 ### Función pura de arranque
 
