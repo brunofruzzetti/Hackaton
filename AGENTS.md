@@ -47,7 +47,10 @@ fueron eliminados.
 - `client/src/components/ContractFolder.tsx`: carpeta azul del contrato de obra.
 - `client/src/components/PlayerDashboard.tsx`: compone header, credencial, contrato y tablero.
 - `client/src/components/VotingPanel.tsx`: nominación, votación pública y firma secreta.
-- `client/src/components/ResolutionModal.tsx`: sobre animado, sello y resultado/victoria.
+- `client/src/components/ResolutionModal.tsx`: sobre animado, sello, resultado/victoria y
+  botón de revancha para el anfitrión.
+- `client/src/components/ErrorBoundary.tsx`: evita la página en blanco ante un error de
+  render y ofrece recarga.
 - `client/src/lib/ui.ts`: constantes de estilo neobrutalista y etiquetas de fase.
 - `client/src/hooks/useRuinaSocket.ts`: WS, reconexión y acciones.
 - `client/src/hooks/useSupabaseRoom.ts`: suscripción Realtime opcional.
@@ -82,6 +85,8 @@ fueron eliminados.
   rechazo), 60 s por firma (ausente = limpio), 8 s de resolución antes de avanzar.
 - El anfitrión puede enviar `force_advance` para desatascar la fase actual; no sustituye a
   los timers.
+- En `VICTORIA`, el anfitrión puede enviar `return_to_lobby` para abrir una revancha
+  conservando asientos e IAs.
 - La primera presidencia es el índice 0 (primer asiento).
 - La reconexión usa `playerId` + token de sesión; no se admiten jugadores nuevos con la
   partida empezada.

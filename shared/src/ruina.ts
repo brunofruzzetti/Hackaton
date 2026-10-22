@@ -314,6 +314,7 @@ export const ruinaClientMessageSchema = z.discriminatedUnion("type", [
     token: z.string().min(1).max(128).optional(),
   }),
   z.object({ type: z.literal("start_game") }),
+  z.object({ type: z.literal("return_to_lobby") }),
   z.object({ type: z.literal("add_ai") }),
   z.object({ type: z.literal("remove_ai"), playerId: z.string().min(1).max(64) }),
   z.object({ type: z.literal("force_advance") }),

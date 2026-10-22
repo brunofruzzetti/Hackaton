@@ -303,6 +303,30 @@ describe("Sabotea la junta · fases", () => {
     expect(room.phase).toBe("NOMINACION");
   });
 
+  it("el anfitrión puede abrir una revancha al terminar la partida", () => {
+    const { store, code, room, host } = setup(5, 19);
+    for (let round = 0; round < 2; round += 1) {
+      const pres = president(room);
+      store.nominate(code, pres.id, otherPlayer(room, pres.id).id);
+      everyoneVotes(store, code, room, true);
+      store.signContract(code, pres.id, "LIMPIO");
+      store.signContract(code, room.vocalId!, "LIMPIO");
+      if (round === 0) store.tick(Date.now() + 10_000);
+    }
+    store.tick(Date.now() + 10_000);
+    expect(room.phase).toBe("VICTORIA");
+    expect(() => store.returnToLobby(code, otherPlayer(room, host.player.id).id)).toThrow(
+      /anfitrión/i,
+    );
+    store.returnToLobby(code, host.player.id);
+    expect(room.phase).toBe("LOBBY");
+    expect(room.points).toEqual({ honestos: 0, deshonestos: 0 });
+    expect(room.players).toHaveLength(5);
+    expect(room.players.every((player) => player.team === null)).toBe(true);
+    store.startGame(code, host.player.id);
+    expect(room.phase).toBe("NOMINACION");
+  });
+
   it("gana el primero que llega a 2 puntos y pasa a VICTORIA", () => {
     const { store, code, room } = setup(5, 15);
     for (let round = 0; round < 2; round += 1) {

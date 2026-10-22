@@ -53,6 +53,7 @@ export interface RuinaSocket {
   createRoom: (nombre: string) => void;
   joinRoom: (code: string, nombre: string) => void;
   startGame: () => void;
+  returnToLobby: () => void;
   addAi: () => void;
   removeAi: (playerId: string) => void;
   forceAdvance: () => void;
@@ -277,6 +278,10 @@ export function useRuinaSocket(): RuinaSocket {
     sendAction({ type: "start_game" });
   }
 
+  function returnToLobby(): void {
+    sendAction({ type: "return_to_lobby" });
+  }
+
   function addAi(): void {
     sendAction({ type: "add_ai" });
   }
@@ -344,6 +349,7 @@ export function useRuinaSocket(): RuinaSocket {
     createRoom,
     joinRoom,
     startGame,
+    returnToLobby,
     addAi,
     removeAi,
     forceAdvance,

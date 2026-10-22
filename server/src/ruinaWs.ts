@@ -135,6 +135,11 @@ export class RuinaWsHub {
           this.broadcastState(session.code);
           return;
         }
+        case "return_to_lobby": {
+          this.store.returnToLobby(session.code, session.playerId);
+          this.broadcastState(session.code);
+          return;
+        }
         case "add_ai": {
           this.store.addAi(session.code, session.playerId);
           this.broadcastState(session.code);

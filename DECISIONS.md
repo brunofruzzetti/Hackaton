@@ -368,6 +368,11 @@ entran en el reparto de bandos/secretos y actúan en servidor una vez por tick: 
 tienen la presidencia, votan con probabilidad según bando y firman (sabotaje probabilístico
 si son deshonestas). No tienen socket ni chat; el estado público las marca con `isAi`.
 
+### D-114 · Revancha y pantalla de error
+Al terminar la partida, el anfitrión puede volver al lobby conservando los asientos y las IAs
+para jugar otra partida. La UI se envuelve en un `ErrorBoundary` que muestra un acta de error
+y un botón de recarga, para que un fallo de render no deje la demo en blanco.
+
 ### D-113 · Escena del portal y voz explícita
 Se añade `PortalScene`: panorámica cenital del portal con avatares pixel-art sentados en U,
 mesa de café grande y mesa frontal pequeña. Se elimina la alfombra y los rótulos de la

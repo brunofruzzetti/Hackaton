@@ -443,6 +443,39 @@ export class RuinaStore {
     return room;
   }
 
+  /** Vuelve al lobby conservando asientos e IAs para una revancha. */
+  returnToLobby(code: string, requesterId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const requester = this.requirePlayer(room, requesterId);
+    if (!requester.isHost) {
+      throw new GameError("NOT_HOST", "Solo el anfitrión puede abrir una revancha.");
+    }
+    if (room.phase !== "VICTORIA") {
+      throw new GameError("NOT_IN_PHASE", "La revancha solo se abre al terminar la partida.");
+    }
+
+    room.phase = "LOBBY";
+    room.round = 0;
+    room.points = { honestos: 0, deshonestos: 0 };
+    room.presidentIndex = 0;
+    room.vocalId = null;
+    room.rejectionCount = 0;
+    room.votes.clear();
+    room.voteResult = null;
+    room.signatures.clear();
+    room.signedIds = [];
+    room.lastResult = null;
+    room.winner = null;
+    room.secrets.clear();
+    room.contractDeck = shuffle(RUINA_CONTRACTS);
+    room.contract = room.contractDeck[0] ?? RUINA_CONTRACTS[0]!;
+    room.phaseEndsAt = null;
+    for (const player of room.players) player.team = null;
+    room.lastActivityAt = Date.now();
+    console.log(`[ruina] ${room.code}: ${requester.nombre} abrió una revancha`);
+    return room;
+  }
+
   chat(code: string, playerId: string, text: string): RuinaChatMessage {
     const room = this.getRoomOrThrow(code);
     const player = this.requirePlayer(room, playerId);

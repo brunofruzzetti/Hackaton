@@ -31,6 +31,8 @@ encubiertos** intentan colar sabotajes sin que se note.
      muestra el sobre, pero no se revela quién firmó el sabotaje.
 - El presidente rota al siguiente índice del array tras cada rechazo y al empezar una nueva
   ronda. La partida termina en cuanto un bando llega a 2 puntos.
+- Al terminar, el anfitrión puede abrir una **revancha** y volver al lobby conservando
+  asientos e IAs.
 - Si el presidente no nomina en **60 s**, el servidor elige un vocal al azar. La votación y
   la firma también caducan a los 60 s. El anfitrión tiene además un botón de emergencia
   **Forzar siguiente fase**.
@@ -116,6 +118,7 @@ Sin credenciales, la UI muestra `WS local` y todo funciona igual.
   src/components/PlayerDashboard.tsx Compone header, credencial, contrato y tablero
   src/components/VotingPanel.tsx     Nominación, votación pública y firma secreta
   src/components/ResolutionModal.tsx Sobre animado, sello y resultado de ronda
+  src/components/ErrorBoundary.tsx   Pantalla de error con recarga en vez de página en blanco
   src/lib/ui.ts                      Constantes de estilo neobrutalista
   src/hooks/useRuinaSocket.ts        Conexión WS, reconexión y acciones
   src/hooks/useSupabaseRoom.ts       Suscripción Realtime opcional

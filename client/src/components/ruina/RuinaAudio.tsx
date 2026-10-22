@@ -78,6 +78,16 @@ export function RuinaAudio({ session, status }: RuinaAudioProps) {
           </div>
         ) : (
           <>
+            {status !== "connected" && (
+              <p className="border-2 border-dashed border-black bg-white px-2 py-1.5 text-center font-mono text-[10px] font-bold uppercase">
+                Reconectando la sala…
+              </p>
+            )}
+            {status === "connected" && audio.status === "idle" && (
+              <p className="border-2 border-dashed border-black bg-white px-2 py-1.5 text-center font-mono text-[10px] font-bold uppercase">
+                Preparando micrófono…
+              </p>
+            )}
             {audio.status === "connecting" && (
               <p className="border-2 border-dashed border-black bg-white px-2 py-1.5 text-center font-mono text-[10px] font-bold uppercase">
                 Conectando micro…

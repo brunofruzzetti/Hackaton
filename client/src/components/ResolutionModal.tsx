@@ -5,6 +5,8 @@ import { BRUTAL } from "../lib/ui";
 interface ResolutionModalProps {
   room: RuinaState;
   onLeave: () => void;
+  onReturnToLobby: () => void;
+  isHost: boolean;
 }
 
 function stampText(room: RuinaState): string {
@@ -16,7 +18,12 @@ function stampText(room: RuinaState): string {
   return "OBRA APROBADA SIN TRAMPA";
 }
 
-export function ResolutionModal({ room, onLeave }: ResolutionModalProps) {
+export function ResolutionModal({
+  room,
+  onLeave,
+  onReturnToLobby,
+  isHost,
+}: ResolutionModalProps) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (room.phaseEndsAt === null) return;
@@ -102,13 +109,24 @@ export function ResolutionModal({ room, onLeave }: ResolutionModalProps) {
           </div>
 
           {victory ? (
-            <button
-              type="button"
-              onClick={onLeave}
-              className={`${BRUTAL.button} mt-4 w-full bg-black px-4 py-3 text-sm font-black uppercase tracking-wide text-[#fef08a]`}
-            >
-              CERRAR EL ACTA Y SALIR
-            </button>
+            <div className="mt-4 space-y-2">
+              {isHost && (
+                <button
+                  type="button"
+                  onClick={onReturnToLobby}
+                  className={`${BRUTAL.button} w-full bg-[#22c55e] px-4 py-3 text-sm font-black uppercase tracking-wide text-white`}
+                >
+                  ABRIR REVANCHA · VOLVER AL LOBBY
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onLeave}
+                className={`${BRUTAL.button} w-full bg-black px-4 py-3 text-sm font-black uppercase tracking-wide text-[#fef08a]`}
+              >
+                CERRAR EL ACTA Y SALIR
+              </button>
+            </div>
           ) : (
             <p className="mt-3 font-mono text-[10px] font-bold uppercase text-stone-500">
               {countdown !== null && countdown > 0

@@ -8,7 +8,7 @@ import { useGameSounds } from "./hooks/useGameSounds";
 import { useRuinaSocket } from "./hooks/useRuinaSocket";
 import { useSupabaseRoom } from "./hooks/useSupabaseRoom";
 import { codeFromUrl } from "./lib/session";
-import { BRUTAL } from "./lib/ui";
+import { BRUTAL, PHASE_LABEL } from "./lib/ui";
 
 export function App() {
   const game = useRuinaSocket();
@@ -126,7 +126,7 @@ export function App() {
                 </p>
               </div>
               <span className="border-2 border-black bg-[#fef08a] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
-                {game.room.phase.replaceAll("_", " ")}
+                {PHASE_LABEL[game.room.phase] ?? game.room.phase}
               </span>
             </div>
             <VotingPanel
@@ -172,7 +172,12 @@ export function App() {
         </footer>
       </div>
 
-      <ResolutionModal room={game.room} onLeave={game.leave} />
+      <ResolutionModal
+        room={game.room}
+        onLeave={game.leave}
+        onReturnToLobby={game.returnToLobby}
+        isHost={game.you.isHost}
+      />
       <ErrorToast error={game.error} onClose={game.clearError} />
     </main>
   );
