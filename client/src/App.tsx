@@ -104,14 +104,8 @@ export function App() {
           supabaseRealtime={realtimeBadge}
         />
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <VotingPanel
-            room={game.room}
-            you={game.you}
-            privateInfo={game.privateInfo}
-            socket={game}
-          />
-          <aside className="order-first space-y-4 lg:order-none">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+          <aside className="space-y-4">
             <RuinaAudio session={game.session} status={game.status} />
             <RuinaChat
               room={game.room}
@@ -120,6 +114,28 @@ export function App() {
               onSend={game.sendChat}
             />
           </aside>
+
+          <div className="lg:order-last">
+            <div className="mb-2 flex items-end justify-between gap-2">
+              <div>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-stone-500">
+                  MENÚ PRINCIPAL
+                </p>
+                <p className="text-sm font-black uppercase leading-none tracking-tight">
+                  Acciones de la junta
+                </p>
+              </div>
+              <span className="border-2 border-black bg-[#fef08a] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
+                {game.room.phase.replaceAll("_", " ")}
+              </span>
+            </div>
+            <VotingPanel
+              room={game.room}
+              you={game.you}
+              privateInfo={game.privateInfo}
+              socket={game}
+            />
+          </div>
         </div>
 
         <footer className="mt-5 flex flex-wrap items-center justify-between gap-2">
