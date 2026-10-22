@@ -224,16 +224,16 @@ describe("Sabotea la junta · fases", () => {
     expect(president(room).id).not.toBe(firstPresident.id);
   });
 
-  it("tres rechazos seguidos dan el punto a los deshonestos", () => {
+  it("dos rechazos seguidos derrumban el edificio y dan el punto a los deshonestos", () => {
     const { store, code, room } = setup(5, 9);
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
       const pres = president(room);
       store.nominate(code, pres.id, otherPlayer(room, pres.id).id);
       everyoneVotes(store, code, room, false);
     }
     expect(room.phase).toBe("RESOLUCION_RONDA");
     expect(room.points.deshonestos).toBe(1);
-    expect(room.lastResult?.motivo).toBe("TRES_RECHAZOS");
+    expect(room.lastResult?.motivo).toBe("DERRUMBE_CONSTRUCTORA");
   });
 
   it("un sabotaje en la firma da el punto a los deshonestos", () => {
@@ -298,7 +298,7 @@ describe("Sabotea la junta · fases", () => {
     const pres = president(room);
     store.nominate(code, pres.id, otherPlayer(room, pres.id).id);
     store.voteCommission(code, pres.id, true);
-    store.tick(Date.now() + 61_000);
+    store.tick(Date.now() + 91_000);
     expect(room.rejectionCount).toBe(1);
     expect(room.phase).toBe("NOMINACION");
   });

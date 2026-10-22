@@ -218,7 +218,7 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
                     <strong>04.</strong> La comisión firma a solas. Un sabotaje huele a punto rojo.
                   </li>
                   <li>
-                    <strong>05.</strong> Tres rechazos y la constructora se lleva el punto.
+                    <strong>05.</strong> Dos rechazos y la constructora derrumba el edificio.
                   </li>
                 </ol>
               </section>

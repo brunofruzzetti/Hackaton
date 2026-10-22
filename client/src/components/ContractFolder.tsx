@@ -1,4 +1,4 @@
-import type { RuinaState } from "@shared/index";
+import { RUINA_MAX_REJECTIONS, type RuinaState } from "@shared/index";
 import { BRUTAL } from "../lib/ui";
 
 interface ContractFolderProps {
@@ -41,7 +41,8 @@ export function ContractFolder({ room }: ContractFolderProps) {
 
         {room.rejectionCount > 0 && (
           <p className="mt-2 border-2 border-black bg-[#ef4444] px-2 py-1.5 font-mono text-[10px] font-bold uppercase text-white shadow-[2px_2px_0_0_#000]">
-            ☠ {room.rejectionCount}/3 comisiones rechazadas. A la tercera, punto para los comerciales.
+            ☠ {room.rejectionCount}/{RUINA_MAX_REJECTIONS} comisiones rechazadas. A la segunda, la
+            constructora derrumba el edificio.
           </p>
         )}
       </div>

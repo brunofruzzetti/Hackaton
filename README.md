@@ -23,8 +23,8 @@ encubiertos** intentan colar sabotajes sin que se note.
 - **Ciclo de ronda**:
   1. **NOMINACIÓN**: el presidente de turno elige a un vocal para la Comisión de Obras.
   2. **VOTACIÓN**: toda la sala vota `APROBAR` o `RECHAZAR`; los votos son públicos al cerrar.
-     Si se rechaza, el turno de presidente pasa al siguiente. A los **3 rechazos seguidos**,
-     los deshonestos ganan el punto automáticamente.
+     Si se rechaza, el turno de presidente pasa al siguiente. A los **2 rechazos seguidos**,
+     la constructora derrumba el edificio y los deshonestos ganan el punto.
   3. **FIRMA SECRETA**: solo presidente y vocal firman. Un honesto solo puede firmar limpio;
      un deshonesto puede firmar limpio o colar sabotaje.
   4. **RESOLUCIÓN**: 0 sabotajes ⇒ punto para honestos; 1+ ⇒ punto para deshonestos. Se
@@ -33,9 +33,9 @@ encubiertos** intentan colar sabotajes sin que se note.
   ronda. La partida termina en cuanto un bando llega a 2 puntos.
 - Al terminar, el anfitrión puede abrir una **revancha** y volver al lobby conservando
   asientos e IAs.
-- Si el presidente no nomina en **60 s**, el servidor elige un vocal al azar. La votación y
-  la firma también caducan a los 60 s. El anfitrión tiene además un botón de emergencia
-  **Forzar siguiente fase**.
+- Si el presidente no nomina en **60 s**, el servidor elige un vocal al azar. La votación
+  de la pareja dura **90 s** y la firma 60 s. El anfitrión tiene además un botón de
+  emergencia **Forzar siguiente fase**.
 - Los deshonestos se conocen entre sí y reciben la lista de compinches. El resto de la sala
   no ve equipos ni expedientes ajenos.
 - Efectos de sonido sintéticos con Web Audio API: martillazo al cerrar la votación, sobre al
@@ -198,7 +198,7 @@ Se usa tanto en el servidor como en tests deterministas con un `rng` inyectable.
 `LOBBY → NOMINACION → VOTACION_COMISION → FIRMA_CONTRATO → RESOLUCION_RONDA → VICTORIA`
 
 - Nominación: 60 s; si no hay vocal, el servidor nomina al azar.
-- Votación: 60 s; los votos ausentes cuentan como rechazo.
+- Votación de la pareja: 90 s; los votos ausentes cuentan como rechazo.
 - Firma: 60 s; las firmas ausentes cuentan como limpias.
 - Resolución: 8 s y paso automático a la siguiente ronda o a victoria.
 - Emergencia: el anfitrión puede forzar la resolución de la fase actual con

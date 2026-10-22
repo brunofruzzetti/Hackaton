@@ -315,15 +315,15 @@ equipos ajenos.
 
 ### D-104 · Votación, rechazos y firma
 La votación es pública y simultánea: el servidor no revela votos hasta que todos han votado
-o vence el timeout. Mayoría simple (`sí > no`); empate ⇒ rechazo. Tres rechazos consecutivos
-en la misma ronda dan el punto a los deshonestos. Solo presidente y vocal firman; un honesto
+o vence el timeout. Mayoría simple (`sí > no`); empate ⇒ rechazo. Dos rechazos consecutivos
+en la misma ronda derrumban el edificio y dan el punto a los deshonestos. Solo presidente y vocal firman; un honesto
 es forzado a `LIMPIO` en servidor; un deshonesto puede elegir `SABOTAJE`. No se revela la
 identidad del saboteador, solo el número de sabotajes.
 
 ### D-105 · Timers y transición automática
-Votación 60 s (ausente = rechazo), firma 60 s (ausente = limpio), resolución 8 s y paso
-automático. La partida no se bloquea si alguien se desconecta; puede reconectar con
-`playerId` + token.
+Votación de la pareja 90 s (ausente = rechazo), firma 60 s (ausente = limpio), resolución
+8 s y paso automático. La partida no se bloquea si alguien se desconecta; puede reconectar
+con `playerId` + token.
 
 ### D-106 · WebSocket autoritativo + Supabase Realtime opcional
 El servidor Fastify/`ws` sigue siendo la única autoridad. Supabase es un espejo best-effort

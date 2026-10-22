@@ -13,7 +13,7 @@ function stampText(room: RuinaState): string {
   if (room.phase === "VICTORIA") {
     return room.winner === "HONESTOS" ? "VICTORIA VECINAL" : "VICTORIA COMERCIAL";
   }
-  if (room.lastResult?.motivo === "TRES_RECHAZOS") return "JUNTA BLOQUEADA";
+  if (room.lastResult?.motivo === "DERRUMBE_CONSTRUCTORA") return "LA CONSTRUCTORA DERRUMBA";
   if (room.lastResult?.saboteada) return "¡SABOTAJE DETECTADO!";
   return "OBRA APROBADA SIN TRAMPA";
 }
@@ -39,7 +39,7 @@ export function ResolutionModal({
     room.phaseEndsAt === null ? null : Math.max(0, Math.ceil((room.phaseEndsAt - now) / 1000));
   const victory = room.phase === "VICTORIA";
   const honestWin = (victory ? room.winner : result?.ganador) === "HONESTOS";
-  const blocked = result?.motivo === "TRES_RECHAZOS";
+  const blocked = result?.motivo === "DERRUMBE_CONSTRUCTORA";
   const sabotaged = Boolean(result?.saboteada);
 
   return (
@@ -82,7 +82,7 @@ export function ResolutionModal({
                 ? "Ganan los vecinos honestos"
                 : "Ganan los comerciales"
               : blocked
-                ? "La junta se ha bloqueado"
+                ? "La constructora derrumba el edificio"
                 : sabotaged
                   ? "Contrato inflado"
                   : "Contrato limpio"}
@@ -91,7 +91,7 @@ export function ResolutionModal({
           {!victory && (
             <p className="mx-auto mt-2 max-w-sm border-2 border-dashed border-black bg-white px-2 py-2 font-mono text-xs leading-relaxed">
               {blocked
-                ? "Tres comisiones rechazadas seguidas. La constructora aprovecha el bloqueo: punto para los deshonestos."
+                ? "Dos comisiones rechazadas seguidas. La constructora derrumba el edificio: punto para los deshonestos."
                 : sabotaged
                   ? `${result?.sabotajes ?? 0} sabotaje${result?.sabotajes === 1 ? "" : "s"} dentro de la comisión. Punto para los deshonestos.`
                   : "Nadie coló una cláusula trampa. Punto para los honestos."}

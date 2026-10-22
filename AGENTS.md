@@ -76,14 +76,15 @@ fueron eliminados.
 - El presidente nomina a un vocal distinto de sí mismo.
 - Votación pública y simultánea; los votos se revelan solo al cerrar. Mayoría simple:
   aprueba solo si `sí > no`. Empate ⇒ rechazo.
-- 3 rechazos seguidos en la misma ronda ⇒ punto automático para deshonestos.
+- 2 rechazos seguidos en la misma ronda ⇒ la constructora derrumba el edificio y los
+  deshonestos ganan el punto.
 - Firma: solo presidente y vocal. Honesto solo `LIMPIO`; deshonesto `LIMPIO` o `SABOTAJE`.
   0 sabotajes ⇒ punto honesto; 1+ ⇒ punto deshonesto.
 - No se revela qué jugador sabotó, solo cuántos sabotajes hubo.
 - El presidente rota al siguiente índice tras cada rechazo y al empezar cada ronda.
 - Bo3: al llegar a 2 puntos se pasa a `VICTORIA`; no se juega la ronda 3 si ya hay 2-0.
-- Timeouts: 60 s por nominación (auto-nominación aleatoria), 60 s por votación (ausente =
-  rechazo), 60 s por firma (ausente = limpio), 8 s de resolución antes de avanzar.
+- Timeouts: 60 s por nominación (auto-nominación aleatoria), 90 s por votación de la pareja
+  (ausente = rechazo), 60 s por firma (ausente = limpio), 8 s de resolución antes de avanzar.
 - El anfitrión puede enviar `force_advance` para desatascar la fase actual; no sustituye a
   los timers.
 - En `VICTORIA`, el anfitrión puede enviar `return_to_lobby` para abrir una revancha

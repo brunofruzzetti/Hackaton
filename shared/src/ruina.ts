@@ -3,6 +3,7 @@ import { z } from "zod";
 export const RUINA_MIN_PLAYERS = 5;
 export const RUINA_MAX_PLAYERS = 8;
 export const RUINA_MAX_AI = 4;
+export const RUINA_MAX_REJECTIONS = 2;
 
 export const RUINA_AI_NAMES = [
   "Manoli",
@@ -83,7 +84,7 @@ export interface RuinaVoteResult {
   votos: Record<string, boolean>;
 }
 
-export type RuinaRoundReason = "OBRA_LIMPIA" | "SABOTAJE" | "TRES_RECHAZOS";
+export type RuinaRoundReason = "OBRA_LIMPIA" | "SABOTAJE" | "DERRUMBE_CONSTRUCTORA";
 
 export interface RuinaRoundResult {
   saboteada: boolean;

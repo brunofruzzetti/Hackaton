@@ -5,6 +5,7 @@ import {
   RUINA_FLOORS,
   RUINA_MAX_AI,
   RUINA_MAX_PLAYERS,
+  RUINA_MAX_REJECTIONS,
   RUINA_MIN_PLAYERS,
   iniciarPartida,
   ruinaTeamSplit,
@@ -24,7 +25,7 @@ import { GameError } from "./errors.js";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const NOMINATION_MS = 60_000;
-const VOTE_MS = 60_000;
+const VOTE_MS = 90_000;
 const SIGN_MS = 60_000;
 const RESOLUTION_MS = 8_000;
 
@@ -727,10 +728,10 @@ export class RuinaStore {
 
     room.rejectionCount += 1;
     console.log(
-      `[ruina] ${room.code}: comisión rechazada (${si}-${no}), rechazo ${room.rejectionCount}/3`,
+      `[ruina] ${room.code}: comisión rechazada (${si}-${no}), rechazo ${room.rejectionCount}/${RUINA_MAX_REJECTIONS}`,
     );
-    if (room.rejectionCount >= 3) {
-      this.awardPoint(room, "DESHONESTOS", "TRES_RECHAZOS", 0);
+    if (room.rejectionCount >= RUINA_MAX_REJECTIONS) {
+      this.awardPoint(room, "DESHONESTOS", "DERRUMBE_CONSTRUCTORA", 0);
       return;
     }
     room.presidentIndex = (room.presidentIndex + 1) % room.players.length;
