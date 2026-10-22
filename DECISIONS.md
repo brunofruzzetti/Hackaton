@@ -64,3 +64,35 @@ probar la UI sin micrófono. Cada entrada lleva `source: "voice" | "chat"`.
 En el lobby todavía no hay roles repartidos. Las entradas de voz/chat de esa fase se
 etiquetan con el rol `null` y se muestran como "Vecino". Al empezar la partida las nuevas
 entradas ya llevan el rol asignado.
+
+## Hito 1
+
+### D-013 · Los roles son públicos
+El reparto se muestra a todos los participantes (y la transcripción etiqueta cada
+intervención con el rol, como pide el enunciado). No hay roles secretos: el juego consiste
+en interpretar el cliché abiertamente.
+
+### D-014 · El WebSocket es el único punto de entrada a la sala
+Crear/unirse se hace con los mensajes `create_room` / `join` del WebSocket, no con endpoints
+HTTP. Así hay una sola ruta de validación y reconexión. HTTP queda para health, config,
+tokens de LiveKit y STT (hitos siguientes). El token de sesión se entrega en el mensaje
+`joined` y el cliente lo guarda en `localStorage`.
+
+### D-015 · Auto-relleno de IA al empezar
+`planComposition` calcula cuántos IA faltan para llegar a 3. El servidor los crea en el
+mismo instante de pulsar "Empezar". Por eso el botón puede estar activo con 1 humano:
+la composición **final** es válida (1 humano + 2 IA). Se deshabilita si el plan no es
+válido (sin humanos, más de 4 IA, más de 8 participantes o imposible llegar al mínimo).
+
+### D-016 · Códigos sin vocales
+El alfabeto de códigos excluye vocales (`ABCDEFGHJKLMNPQRSTUVWXYZ`) para que no se formen
+palabras ni se confundan letras al dictar el código por voz.
+
+### D-017 · Campos de hitos futuros ya presentes en el estado
+`PlayerState` incluye `speaking`, `silencedUntil` y `orderWarnings`, y `RoomState` incluye
+`discussionEndsAt`. Están a `false`/`null`/`0` hasta que se implementen los hitos 2 y 5.
+Evita romper el protocolo compartido más adelante.
+
+### D-018 · Endpoint de depuración de salas
+`GET /api/debug/room/:code` devuelve el estado público (sin tokens) de una sala. Es solo
+para pruebas manuales del hackathon; no expone datos secretos.

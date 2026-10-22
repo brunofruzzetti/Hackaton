@@ -1,63 +1,47 @@
-import { useEffect, useState } from "react";
-
-type Health = { ok: boolean; livekitConfigured: boolean };
+import { Home } from "./components/Home";
+import { Lobby } from "./components/Lobby";
+import { useGameSocket } from "./hooks/useGameSocket";
+import { codeFromUrl } from "./lib/session";
 
 export function App() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json() as Promise<Health>;
-      })
-      .then(setHealth)
-      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Error"));
-  }, []);
+  const game = useGameSocket();
+  const initialCode = codeFromUrl();
+  const busy = game.status === "connecting" || game.status === "reconnecting";
 
   return (
     <main className="app-shell">
-      <header className="hero">
-        <p className="eyebrow">Comunidad de propietarios · 3.º B</p>
-        <h1>Junta de Vecinos</h1>
-        <p className="tagline">
-          Un juego de voz donde cada vecino defiende su papel. Convocatoria en curso.
-        </p>
-      </header>
+      {game.room && game.you ? (
+        <Lobby
+          room={game.room}
+          you={game.you}
+          status={game.status}
+          onAddAi={game.addAi}
+          onRemoveAi={game.removeAi}
+          onStart={game.startGame}
+          onLeave={game.leave}
+        />
+      ) : busy ? (
+        <section className="connecting-screen">
+          <div className="spinner" aria-hidden="true" />
+          <h1>{game.status === "reconnecting" ? "Volviendo a la junta…" : "Conectando…"}</h1>
+          <p className="hint">Preparando la sala y el acta de la comunidad.</p>
+        </section>
+      ) : (
+        <Home
+          initialCode={initialCode}
+          onCreate={game.createRoom}
+          onJoin={game.joinRoom}
+        />
+      )}
 
-      <section className="card">
-        <h2>Hito 0 · Base del proyecto</h2>
-        <p>Monorepo listo: servidor Fastify, cliente React y paquete compartido.</p>
-        <ul className="checklist">
-          <li>
-            Servidor:{" "}
-            {error ? (
-              <span className="bad">sin conexión ({error})</span>
-            ) : health ? (
-              <span className="good">conectado</span>
-            ) : (
-              "comprobando…"
-            )}
-          </li>
-          <li>
-            Audio LiveKit:{" "}
-            {health ? (
-              health.livekitConfigured ? (
-                <span className="good">configurado</span>
-              ) : (
-                <span className="warn">sin configurar</span>
-              )
-            ) : (
-              "—"
-            )}
-          </li>
-        </ul>
-      </section>
-
-      <footer className="footer">
-        <span>MVP hackathon · sesión 1</span>
-      </footer>
+      {game.error && (
+        <div className="toast" role="alert">
+          <p>{game.error}</p>
+          <button type="button" className="btn-icon" onClick={game.clearError} aria-label="Cerrar aviso">
+            ×
+          </button>
+        </div>
+      )}
     </main>
   );
 }

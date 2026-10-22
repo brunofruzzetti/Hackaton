@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsup src/index.ts --format esm --target node20 --out-dir dist --no-external @junta/shared",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
