@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Juego web multijugador por voz: una junta de vecinos con roles cliché, vecinos IA y un juez IA.",
+  "description": "Junta de Ruina: party game de deducción social 5–8 jugadores, voz LiveKit, votaciones y contratos secretos.",
   "workspaces": [
     "shared",
     "server",

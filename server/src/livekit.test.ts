@@ -19,7 +19,6 @@ describe("LiveKit", () => {
       code: "ABCD",
       playerId: "player-1",
       playerName: "Ana",
-      roleId: "gossip",
       config: {
         url: "ws://localhost:7880",
         apiKey: "devkey",
@@ -38,6 +37,6 @@ describe("LiveKit", () => {
     expect(video.roomJoin).toBe(true);
     expect(video.canPublish).toBe(true);
     expect(video.canSubscribe).toBe(true);
-    expect(payload.metadata).toContain("gossip");
+    expect(payload.metadata).toContain("ABCD");
   });
 });

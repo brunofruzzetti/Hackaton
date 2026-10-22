@@ -1,225 +1,154 @@
-# Junta de Vecinos
+# Junta de Ruina
 
-Juego web multijugador por voz para hackathon. Cada jugador encarna un rol cliché de una
-comunidad de propietarios, discute una propuesta (por ejemplo, instalar un ascensor) y
-cumple tareas secretas. Un juez IA puntúa las tareas y la interpretación; tras 3 rondas
-gana quien acumula más puntos.
+Party game web de deducción social para **5–8 jugadores** ambientado en una comunidad de
+vecinos. Una constructora ha comprado a una parte de la junta: los vecinos honestos deben
+aprobar contratos limpios, mientras los **comerciales encubiertos** intentan colar sabotajes
+sin que se note.
 
-## Estado actual
+## Reglas
 
-| Hito | Contenido | Estado |
-| --- | --- | --- |
-| 0 | Monorepo, scripts dev, docs, env | ✅ |
-| 1 | Salas, lobby WS, roles y composición validada | ✅ |
-| 2 | LiveKit, push-to-talk, STT, transcripción compartida | ✅ |
-| 3 | Vecinos IA (solo texto) + cola de turnos | ✅ |
-| 4 | Tareas por ronda, sucesos, temporizador y portal 2D | ✅ |
-| 5 | Juez moderador en directo | ✅ |
-| 6 | Juez de final de ronda, tareas y puntos | ✅ |
-| 7 | Tienda/monedas: descartado; puntuación por tareas | — |
-| 8 | Acciones de rol, sonidos, estadísticas, espectador y pulido | ⏳ |
+- **5–8 jugadores** por sala, sin registro: código de 4 letras + nombre.
+- **Bandos secretos**:
+  - 5–7 jugadores: 2 deshonestos.
+  - 8 jugadores: 3 deshonestos.
+- **Bo3**: gana el primer bando que consigue **2 puntos**.
+- **Pisos**: cada jugador recibe un piso (`Bajo`, `1ºA`, `1ºB`, `2ºA`, `2ºB`, `3ºA`, `3ºB`,
+  `Ático`).
+- **Secretos circulares**: cada jugador recibe un expediente sobre el vecino de su derecha
+  (el siguiente del anillo):
+  - si es deshonesto: `SOSPECHOSO`;
+  - si es honesto: 50% `LIMPIO`, 50% `TRAPO_SUCIO`.
+- **Ciclo de ronda**:
+  1. **NOMINACIÓN**: el presidente de turno elige a un vocal para la Comisión de Obras.
+  2. **VOTACIÓN**: toda la sala vota `APROBAR` o `RECHAZAR`; los votos son públicos al cerrar.
+     Si se rechaza, el turno de presidente pasa al siguiente. A los **3 rechazos seguidos**,
+     los deshonestos ganan el punto automáticamente.
+  3. **FIRMA SECRETA**: solo presidente y vocal firman. Un honesto solo puede firmar limpio;
+     un deshonesto puede firmar limpio o colar sabotaje.
+  4. **RESOLUCIÓN**: 0 sabotajes ⇒ punto para honestos; 1+ ⇒ punto para deshonestos. Se
+     muestra el sobre, pero no se revela quién firmó el sabotaje.
+- El presidente rota al siguiente índice del array tras cada rechazo y al empezar una nueva
+  ronda. La partida termina en cuanto un bando llega a 2 puntos.
+- Los deshonestos se conocen entre sí y reciben la lista de compinches. El resto de la sala
+  no ve equipos ni expedientes ajenos.
 
-## Requisitos
+## Stack
 
-- Node.js 20 o superior (probado con 24).
-- npm 10+.
-- Micrófono y **HTTPS** (o `localhost`) para usar `getUserMedia`. Ver túneles más abajo.
-- Opcional: claves de LiveKit Cloud / LiveKit local, DeepSeek, OpenAI o Deepgram.
+- **Servidor autoritativo**: Node.js + TypeScript estricto, Fastify, WebSockets (`ws`), estado
+  en memoria. Fases, timers, votos, firmas y puntuaciones viven en el servidor.
+- **Cliente**: React + Vite + TypeScript + **Tailwind CSS v4**.
+- **Voz**: LiveKit (`livekit-server-sdk` para tokens y `livekit-client` en el navegador).
+- **Supabase Realtime (opcional)**: espejo de `salas` y `jugadores` para suscripciones en
+  vivo. El WebSocket sigue siendo la autoridad; si Supabase falla, la partida continúa.
 
-## Instalación
+## Arranque
 
 ```bash
 npm install
-cp .env.example .env   # en Windows: Copy-Item .env.example .env
-```
-
-Rellena `.env` con lo que tengas. La app arranca aunque falten claves:
-
-- Sin LiveKit: el audio no se conecta y se avisa en pantalla; el resto sigue funcionando.
-- Sin STT: usa `STT_PROVIDER=mock` para probar el flujo de transcripción sin gastar API.
-- Sin DeepSeek: se usa `LLM_PROVIDER=mock` para vecinos IA y juez; el flujo completo sigue
-  funcionando con contenido simulado.
-
-## Arrancar en desarrollo
-
-```bash
+cp .env.example .env       # Windows: copy .env.example .env
 npm run dev
 ```
 
-- Cliente: <http://localhost:5173>
-- Servidor: <http://localhost:3001> (`/api/health`)
-- Vite hace proxy de `/api` y `/ws` al servidor, así que en el móvil solo hay que exponer
-  el puerto 5173.
+- Cliente: `http://localhost:5173`
+- Servidor: `http://localhost:3001`
+- WebSocket: `ws://localhost:3001/ws`
 
-Comandos útiles:
+`server` y `client` cargan el `.env` de la raíz (`envDir: ".."` en Vite y `dotenv` con
+`[".env", "../.env"]` en el servidor).
 
-```bash
-npm test          # tests unitarios (Vitest)
-npm run typecheck # TypeScript estricto en server y client
-npm run build     # build de producción
-```
+### LiveKit
 
-## LiveKit
+Rellena `LIVEKIT_URL`, `LIVEKIT_API_KEY` y `LIVEKIT_API_SECRET` en `.env`. Sin LiveKit, el
+juego sigue funcionando con chat.
 
-### LiveKit Cloud
+### Supabase Realtime (opcional)
 
-1. Crea un proyecto en <https://cloud.livekit.io>.
-2. Copia `LIVEKIT_URL` (`wss://...livekit.cloud`), `LIVEKIT_API_KEY` y `LIVEKIT_API_SECRET` al `.env`.
-
-### LiveKit local (modo dev)
+1. Ejecuta [`supabase/schema.sql`](supabase/schema.sql) en el SQL Editor del proyecto.
+2. Rellena en `.env`:
 
 ```bash
-docker run --rm -p 7880:7880 -p 7881:7881 -p 7882:7882/udp \
-  -e LIVEKIT_KEYS="devkey: secret" livekit/livekit-server --dev
+SUPABASE_URL=https://<tu-proyecto>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role>   # espejo servidor
+SUPABASE_ANON_KEY=<anon-key>
+VITE_SUPABASE_URL=https://<tu-proyecto>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon-key>
 ```
 
-Sin Docker (Windows/macOS/Linux) puedes usar el binario oficial: descarga el release de
-<https://github.com/livekit/livekit/releases> y ejecuta `livekit-server --dev`. En
-`docs/hito-2.md` hay un ejemplo completo para PowerShell.
+El servidor hace un `upsert` best-effort del estado en `salas` y `jugadores`; el cliente
+escucha `postgres_changes` con [`useSupabaseRoom`](client/src/hooks/useSupabaseRoom.ts).
+Sin credenciales, la UI muestra `WS local` y todo funciona igual.
 
-```env
-LIVEKIT_URL=ws://localhost:7880
-LIVEKIT_API_KEY=devkey
-LIVEKIT_API_SECRET=secret
+> **Aviso de seguridad**: las políticas RLS del schema son abiertas para desarrollo y
+> exponen `es_deshonesto` / `informacion_privada` a `anon`. Antes de producción, mueve esos
+> campos a una tabla privada y restringe las políticas. El README y el SQL lo indican.
+
+## Arquitectura
+
+```text
+/shared
+  src/ruina.ts        Tipos, constantes, zod del cliente y lógica pura iniciarPartida()
+/server
+  src/ruinaStore.ts   Máquina de estados autoritativa y reglas de sala
+  src/ruinaWs.ts      Transporte WS, sesiones, reconexión, heartbeats y difusión
+  src/supabaseMirror.ts Espejo opcional Supabase (REST + Realtime)
+  src/livekit.ts      Tokens JWT de LiveKit
+  src/index.ts        Fastify: health, config, token y arranque
+/client
+  src/components/Lobby.tsx           Crear/unirse y lista de vecinos
+  src/components/PlayerDashboard.tsx Marcador Bo3 + expediente privado post-it
+  src/components/VotingPanel.tsx     Nominación, votación pública y firma secreta
+  src/components/ResolutionModal.tsx Sobre animado y resultado de ronda
+  src/hooks/useRuinaSocket.ts        Conexión WS, reconexión y acciones
+  src/hooks/useSupabaseRoom.ts       Suscripción Realtime opcional
+  src/hooks/useLiveKit.ts            Audio de sala
 ```
 
-En móvil, `localhost` no apunta a tu PC: usa la IP de tu red o un túnel. Para WebRTC por
-túnel necesitas además exponer los puertos UDP/TCP de LiveKit; lo más simple en el
-hackathon es usar LiveKit Cloud.
+### Función pura de arranque
 
-## Audio y transcripción
+[`iniciarPartida`](shared/src/ruina.ts) recibe `{ id, nombre }[]`, valida 5–8 jugadores y
+devuelve, sin tocar red ni timers:
 
-- Al entrar en una sala, el cliente pide un token a `POST /api/livekit/token` y se conecta
-  al room `junta-CODIGO` con micrófono publicado.
-- **Silenciar micrófono** corta la publicación del micro (y deshabilita el push-to-talk).
-- El indicador de hablantes usa `ActiveSpeakersChanged` de LiveKit; el cliente informa al
-  servidor por WebSocket y la lista de vecinos se resalta en tiempo real.
-- **Push-to-talk**: mantén pulsado el botón, habla y suelta. El clip se sube a
-  `POST /api/stt` y el servidor lo transcribe con `STT_PROVIDER`:
-  - `openai` → Whisper (`whisper-1`, español).
-  - `deepgram` → Nova (`nova-3`, español).
-  - `mock` → texto simulado para desarrollo, sin claves.
-- La transcripción se difunde por WebSocket y se muestra como `[jugador | rol] texto`.
-- El chat de texto comparte la misma lista y sirve de respaldo si falla el micro.
-- Si LiveKit o el STT no están configurados, la partida no se cae: se muestra un aviso y
-  se puede seguir con el chat.
+- jugadores con `piso`, `equipo`, `esDeshonesto` e `informacionPrivada`;
+- mapa de secretos circulares;
+- baraja de contratos;
+- índice inicial de presidente.
 
-Configuración de STT en `.env`:
+Se usa tanto en el servidor como en tests deterministas con un `rng` inyectable.
 
-```env
-STT_PROVIDER=openai        # openai | deepgram | mock
-OPENAI_API_KEY=sk-...
-DEEPGRAM_API_KEY=...
-```
+### Fases
 
-## Vecinos IA
+`LOBBY → NOMINACION → VOTACION_COMISION → FIRMA_CONTRATO → RESOLUCION_RONDA → VICTORIA`
 
-- Hasta **4 vecinos IA** por partida, con nombre y rol propios.
-- Usan DeepSeek (`deepseek-chat`, `https://api.deepseek.com`) y hablan por turnos.
-- Solo toman la palabra si ningún humano está hablando, han pasado ~2,5 s desde la última
-  intervención humana, no hay otra IA hablando y no ha hablado el juez.
-- Cada IA interviene como máximo **2 veces por ronda**, con al menos 15 s entre mensajes.
-- **Las IA no hablan: publican texto.** El mensaje aparece en la transcripción y cuenta
-  como “hablando” durante unos segundos, de modo que también suma para el aviso del juez.
-- Si un humano empieza a hablar, se descarta la generación pendiente; el texto ya publicado
-  sigue visible hasta que termina su ventana.
-- Sin `DEEPSEEK_API_KEY` se puede usar `LLM_PROVIDER=mock` para probar el flujo completo.
+- Votación: 60 s; los votos ausentes cuentan como rechazo.
+- Firma: 60 s; las firmas ausentes cuentan como limpias.
+- Resolución: 8 s y paso automático a la siguiente ronda o a victoria.
 
-```env
-LLM_PROVIDER=deepseek      # deepseek | mock
-DEEPSEEK_API_KEY=sk-...
-```
-
-## Roles y presidencia
-
-La bolsa tiene **14 roles** y cada partida sortea 10 (máximo 10 jugadores). Los roles no se
-repiten. La presidencia tiene **3 estilos aleatorios**: dictador, a su pesar e influencer.
-Si aparece el conserje, el presidente siempre está en la partida y el conserje IA conoce su
-nombre.
-
-## Tareas, sucesos y juicio
-
-- Cada humano recibe **4 tareas secretas por ronda**: 3 de su rol/estilo y 1 universal.
-  Cada rol tiene un mazo de **24 tareas**; no se repiten entre rondas.
-- Las tareas pueden ser **combo**: si dos roles compatibles están en la partida, ambos
-  reciben una misión compartida y ven el nombre de su compañero.
-- Cada ronda lanza **4 sucesos de la comunidad** (de un total de 24), elegidos entre los
-  que afectan a los roles presentes.
-- El juez final evalúa las tareas y la interpretación. El servidor suma:
-  **puntos de tareas (1/2/3 por dificultad) + bonus de rol (0-5)**.
-- No hay monedas ni tienda. La puntuación es directa y se acumula durante las 3 rondas.
-- El juez moderador avisa y silencia 3 s si **4 participantes** (humanos o IA publicando
-  texto) están activos a la vez durante 2 s, con cooldown de 15 s.
-- No hay voto de jugadores para decidir el ganador. El flag `votes` queda como trasfondo
-  de propietario/no propietario.
-- El portal 2D muestra a los vecinos sentados por rol, el tablón de sucesos y el altavoz
-  del juez.
-
-## HTTPS en desarrollo (obligatorio para el micrófono)
-
-En `localhost` el navegador permite el micrófono. Desde el móvil necesitas HTTPS:
-
-### Cloudflare Tunnel
+## Tests y verificación
 
 ```bash
-cloudflared tunnel --url http://localhost:5173
+npm test
+npm run typecheck
+npm run build
 ```
 
-Copia la URL `https://...trycloudflare.com` que imprime y ábrela en el móvil.
-El WebSocket viaja por el mismo túnel gracias al proxy de Vite.
+Cubren reparto de pisos/bandos, secretos circulares, ocultación de equipos en el estado
+público, nominación, votos públicos, rechazos, sabotaje, timeout, victoria Bo3 y tokens de
+LiveKit.
 
-### ngrok
+## Prueba manual rápida
 
-```bash
-ngrok http 5173
-```
+1. Abre 5 pestañas (o 5 dispositivos) en `http://localhost:5173`.
+2. Crea una sala y comparte el código; entra con 5 nombres.
+3. El anfitrión pulsa **Empezar la junta**.
+4. Comprueba que cada pestaña ve su expediente y su piso, pero no los de los demás.
+5. El presidente nomina, la sala vota y la comisión firma. Al cerrar la votación, los votos
+   son públicos; al firmar, solo se revela el número de sabotajes.
+6. Repite hasta que un bando llegue a 2 puntos; el sobre final muestra la victoria.
 
-Abre la URL `https://...ngrok-free.app` en el móvil.
+## Limitaciones conocidas
 
-> Si usas LiveKit Cloud, añade el dominio del túnel a los orígenes permitidos del proyecto
-> si tu configuración lo requiere. El token se genera en el servidor, nunca en el cliente.
-
-## Estructura
-
-```
-/shared   Tipos, eventos, roles, configuración y reglas puras (tests incluidos)
-/server   Fastify + ws, estado en memoria, LiveKit, STT, LLM
-/client   React + Vite, mobile-first, sin librería de UI
-```
-
-## Cómo se juega (MVP)
-
-1. Un jugador crea sala y comparte el código de 4 letras.
-2. El resto entra con código + nombre (sin registro).
-3. El anfitrión añade vecinos IA (máx. 4) hasta cumplir el mínimo de 3 participantes.
-4. Al empezar se reparten roles aleatorios sin repetir, aplicando la regla
-   **conserje ⇒ presidente**.
-5. El anfitrión pulsa **Comenzar discusión**: 4 minutos por ronda. Hablas por LiveKit,
-   mantienes pulsado el push-to-talk para dejar un clip transcrito y los vecinos IA
-   intervienen cuando hay silencio. El chat de texto es el plan B.
-6. Cada jugador recibe 4 tareas secretas y la comunidad lanza 4 sucesos durante la ronda.
-7. Al acabar, el juez puntúa las tareas y la interpretación: puntos de tareas + bonus de rol.
-8. En **Resultados** ves el acta, el desglose y la clasificación acumulada.
-9. Tras 3 rondas, gana quien tenga más puntos.
-
-## Endpoints
-
-| Método | Ruta | Uso |
-| --- | --- | --- |
-| GET | `/api/health` | Estado del servidor |
-| GET | `/api/config` | Configuración pública (LiveKit, límites) |
-| POST | `/api/livekit/token` | Token JWT de audio para una sesión |
-| POST | `/api/stt` | Subida binaria de un clip y transcripción |
-| WS | `/ws` | Eventos de sala, lobby, chat y transcripción |
-| GET | `/api/debug/room/:code` | Estado público de una sala (solo depuración) |
-
-## Documentación
-
-- `AGENTS.md`: reglas y convenciones para futuras sesiones.
-- `DECISIONS.md`: decisiones tomadas ante ambigüedades.
-- `docs/hito-1.md`: pruebas de salas, lobby y composición.
-- `docs/hito-2.md`: pruebas de LiveKit, PTT y transcripción.
-- `docs/hito-3.md`: pruebas de vecinos IA, texto y turnos.
-- `docs/hito-4.md`: tareas, sucesos y portal 2D.
-- `docs/hito-5.md`: juez moderador y silencio forzado.
-- `docs/hito-6.md`: juez final y puntuación por tareas.
+- Estado en memoria: reiniciar el servidor borra las salas.
+- No hay cuentas ni historial; la reconexión usa `playerId` + token en `localStorage`.
+- Si no hay LiveKit, no hay voz; el chat sigue disponible.
+- El espejo Supabase es best-effort y las RLS son solo para desarrollo.
+- La primera presidencia es el primer asiento de la sala; después rota.

@@ -1,56 +1,152 @@
-import { Home } from "./components/Home";
 import { Lobby } from "./components/Lobby";
-import { useGameSocket } from "./hooks/useGameSocket";
+import { PlayerDashboard } from "./components/PlayerDashboard";
+import { ResolutionModal } from "./components/ResolutionModal";
+import { VotingPanel } from "./components/VotingPanel";
+import { RuinaAudio } from "./components/ruina/RuinaAudio";
+import { RuinaChat } from "./components/ruina/RuinaChat";
+import { useRuinaSocket } from "./hooks/useRuinaSocket";
+import { useSupabaseRoom } from "./hooks/useSupabaseRoom";
 import { codeFromUrl } from "./lib/session";
 
 export function App() {
-  const game = useGameSocket();
+  const game = useRuinaSocket();
+  const realtime = useSupabaseRoom(game.room?.code ?? null);
   const initialCode = codeFromUrl();
+  const realtimeBadge = { configured: realtime.configured, connected: realtime.connected };
   const busy = game.status === "connecting" || game.status === "reconnecting";
 
-  return (
-    <main className="app-shell">
-      {game.room && game.you && game.session ? (
+  if (!game.room) {
+    if (busy) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+          <div className="text-center">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+            <h1 className="mt-4 text-xl font-black text-slate-900">
+              {game.status === "reconnecting" ? "Volviendo a la junta…" : "Conectando…"}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">Preparando la sala y el acta de la comunidad.</p>
+          </div>
+        </main>
+      );
+    }
+    return (
+      <main className="min-h-screen bg-slate-100">
+        <Lobby
+          room={null}
+          you={null}
+          session={null}
+          socket={game}
+          initialCode={initialCode}
+          supabaseRealtime={realtimeBadge}
+        />
+        <ErrorToast error={game.error} onClose={game.clearError} />
+      </main>
+    );
+  }
+
+  if (!game.you || !game.session) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+          <h1 className="mt-4 text-xl font-black text-slate-900">Recuperando tu asiento…</h1>
+        </div>
+      </main>
+    );
+  }
+
+  if (game.room.phase === "LOBBY") {
+    return (
+      <main className="min-h-screen bg-slate-100">
         <Lobby
           room={game.room}
           you={game.you}
           session={game.session}
-          status={game.status}
-          onAddAi={game.addAi}
-          onRemoveAi={game.removeAi}
-          onStart={game.startGame}
-          onStartDiscussion={game.startDiscussion}
-          onEndDiscussion={game.endDiscussion}
-          onNextRound={game.nextRound}
-          onLeave={game.leave}
-          onSendChat={game.sendChat}
-          onSpeakingChange={game.setSpeaking}
-          onError={game.showError}
-          judgeMessage={game.judgeMessage}
-          tasks={game.tasks}
-        />
-      ) : busy ? (
-        <section className="connecting-screen">
-          <div className="spinner" aria-hidden="true" />
-          <h1>{game.status === "reconnecting" ? "Volviendo a la junta…" : "Conectando…"}</h1>
-          <p className="hint">Preparando la sala y el acta de la comunidad.</p>
-        </section>
-      ) : (
-        <Home
+          socket={game}
           initialCode={initialCode}
-          onCreate={game.createRoom}
-          onJoin={game.joinRoom}
+          supabaseRealtime={realtimeBadge}
         />
-      )}
+        <ErrorToast error={game.error} onClose={game.clearError} />
+      </main>
+    );
+  }
 
-      {game.error && (
-        <div className="toast" role="alert">
-          <p>{game.error}</p>
-          <button type="button" className="btn-icon" onClick={game.clearError} aria-label="Cerrar aviso">
-            ×
-          </button>
+  if (!game.privateInfo) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+          <h1 className="mt-4 text-xl font-black text-slate-900">Repartiendo expedientes…</h1>
+          <p className="mt-1 text-sm text-slate-500">Preparando los sobres secretos de la junta.</p>
         </div>
-      )}
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-100">
+      <div className="mx-auto max-w-6xl px-4 pb-10 pt-4">
+        <PlayerDashboard
+          room={game.room}
+          you={game.you}
+          privateInfo={game.privateInfo}
+          supabaseRealtime={realtimeBadge}
+        />
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <VotingPanel
+            room={game.room}
+            you={game.you}
+            privateInfo={game.privateInfo}
+            socket={game}
+          />
+          <aside className="space-y-4">
+            <RuinaAudio session={game.session} status={game.status} />
+            <RuinaChat
+              room={game.room}
+              you={game.you}
+              connected={game.status === "connected"}
+              onSend={game.sendChat}
+            />
+          </aside>
+        </div>
+
+        <footer className="mt-5 flex items-center justify-between">
+          <span className="text-xs font-semibold text-slate-500">
+            {game.status === "connected" ? "Conectado" : "Reconectando…"}
+          </span>
+          <button
+            type="button"
+            onClick={game.leave}
+            className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-200"
+          >
+            Salir
+          </button>
+        </footer>
+      </div>
+
+      <ResolutionModal room={game.room} onLeave={game.leave} />
+      <ErrorToast error={game.error} onClose={game.clearError} />
     </main>
+  );
+}
+
+function ErrorToast({ error, onClose }: { error: string | null; onClose: () => void }) {
+  if (!error) return null;
+  return (
+    <div
+      role="alert"
+      className="fixed bottom-4 left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-start gap-3 rounded-2xl border border-red-200 bg-white p-3 text-sm shadow-xl"
+    >
+      <p className="flex-1 text-slate-700">{error}</p>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar aviso"
+        className="rounded-lg px-2 text-lg font-bold text-slate-400 hover:bg-slate-100"
+      >
+        ×
+      </button>
+    </div>
   );
 }

@@ -1,22 +1,17 @@
 import { config as loadDotenv } from "dotenv";
 import { z } from "zod";
 
-loadDotenv();
+// Funciona tanto si el script se lanza desde /server como desde la raíz.
+loadDotenv({ path: [".env", "../.env"] });
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
-  DEEPSEEK_API_KEY: z.string().optional(),
   LIVEKIT_URL: z.string().optional(),
   LIVEKIT_API_KEY: z.string().optional(),
   LIVEKIT_API_SECRET: z.string().optional(),
-  STT_PROVIDER: z.enum(["openai", "deepgram", "mock"]).default("openai"),
-  OPENAI_API_KEY: z.string().optional(),
-  DEEPGRAM_API_KEY: z.string().optional(),
-  LLM_PROVIDER: z.enum(["deepseek", "mock"]).default("deepseek"),
-  JUDGE_FORCE_MUTE: z
-    .string()
-    .optional()
-    .transform((value) => value !== "false"),
+  SUPABASE_URL: z.string().url().optional().or(z.literal("")),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_ANON_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -32,17 +27,18 @@ export const livekitConfigured = Boolean(
   env.LIVEKIT_URL && env.LIVEKIT_API_KEY && env.LIVEKIT_API_SECRET,
 );
 
+export const supabaseConfigured = Boolean(
+  env.SUPABASE_URL && (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY),
+);
+
 export function logEnvSummary(): void {
   console.log("[env] Puerto:", env.PORT);
   console.log(
     "[env] LiveKit:",
     livekitConfigured ? `configurado (${env.LIVEKIT_URL})` : "NO configurado (audio deshabilitado)",
   );
-  console.log("[env] STT:", env.STT_PROVIDER);
   console.log(
-    "[env] LLM:",
-    env.LLM_PROVIDER,
-    env.DEEPSEEK_API_KEY || env.LLM_PROVIDER === "mock" ? "" : "(sin DEEPSEEK_API_KEY: se usará mock)",
+    "[env] Supabase:",
+    supabaseConfigured ? "espejo Realtime activo" : "NO configurado (solo WebSocket)",
   );
-  console.log("[env] Silencio forzado del juez:", env.JUDGE_FORCE_MUTE);
 }

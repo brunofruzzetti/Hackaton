@@ -287,3 +287,55 @@ El juez moderador cuenta como activos a los humanos que hablan y a las IA cuyo t
 en su ventana de “hablando”. Con 4 activos durante 2 s interviene. Solo silencia a los
 humanos; a las IA les corta el estado de habla y la generación. Así el texto IA cuenta para
 el orden de la sala sin necesidad de TTS.
+
+## Nueva etapa: Junta de Ruina (sustituye al prototipo anterior)
+
+### D-100 · Reinicio del producto y de las reglas
+Se abandona el juego de roles/juez/tareas. El nuevo producto es un party game de deducción
+social 5–8 jugadores con bandos secretos (honestos vs comerciales encubiertos), 4 fases por
+ronda, votación pública, firma secreta y Bo3. Se eliminan juez IA, tareas, tienda, monedas,
+apartamento, elección de presidente y los 14 roles cliché. La presidencia pasa a ser un
+cargo rotatorio.
+
+### D-101 · Reparto de bandos
+5–7 jugadores: 2 deshonestos. 8 jugadores: 3 deshonestos. Es el balance pedido por el
+usuario y mantiene mayoría honesta en todos los tamaños. 6 jugadores = 4/2 y 8 = 5/3.
+
+### D-102 · `iniciarPartida` pura en `/shared`
+La asignación de pisos, bandos y secretos vive en `iniciarPartida(jugadores, rng)`, sin
+red/timers. Los pisos se asignan en el orden de entrada (`Bajo`, `1ºA`, `1ºB`, `2ºA`, `2ºB`,
+`3ºA`, `3ºB`, `Ático`). El anillo de secretos es el orden del array: cada jugador vigila al
+siguiente. Si el vigilado es deshonesto ⇒ `SOSPECHOSO`; si es honesto ⇒ 50% `LIMPIO` / 50%
+`TRAPO_SUCIO`. El `rng` es inyectable para tests.
+
+### D-103 · Los deshonestos se conocen
+Los comerciales reciben `companeros` en su información privada. Sin coordinación, el
+sabotaje secreto sería una lotería y el bando no tendría juego social. Los honestos no ven
+equipos ajenos.
+
+### D-104 · Votación, rechazos y firma
+La votación es pública y simultánea: el servidor no revela votos hasta que todos han votado
+o vence el timeout. Mayoría simple (`sí > no`); empate ⇒ rechazo. Tres rechazos consecutivos
+en la misma ronda dan el punto a los deshonestos. Solo presidente y vocal firman; un honesto
+es forzado a `LIMPIO` en servidor; un deshonesto puede elegir `SABOTAJE`. No se revela la
+identidad del saboteador, solo el número de sabotajes.
+
+### D-105 · Timers y transición automática
+Votación 60 s (ausente = rechazo), firma 60 s (ausente = limpio), resolución 8 s y paso
+automático. La partida no se bloquea si alguien se desconecta; puede reconectar con
+`playerId` + token.
+
+### D-106 · WebSocket autoritativo + Supabase Realtime opcional
+El servidor Fastify/`ws` sigue siendo la única autoridad. Supabase es un espejo best-effort
+(`salas`/`jugadores`) para que el cliente pueda escuchar cambios. Sin credenciales, la
+partida funciona igual. El schema incluye RLS abierta solo para desarrollo; se documenta el
+riesgo de exponer `es_deshonesto`/`informacion_privada`.
+
+### D-107 · Tailwind CSS v4
+Se instala `tailwindcss` + `@tailwindcss/vite`. Los componentes nuevos
+(`Lobby`, `PlayerDashboard`, `VotingPanel`, `ResolutionModal`, chat y audio) usan utilidades
+Tailwind. El CSS propio se reduce a base, tipografía manuscrita y animaciones del sobre.
+
+### D-108 · Presidencia inicial y rotación
+La primera presidencia es el índice 0 (primer asiento). Rota al siguiente índice tras cada
+rechazo y al empezar una nueva ronda. No hay elección de presidente ni término especial.

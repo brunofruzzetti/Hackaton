@@ -1,10 +1,23 @@
-import type {
-  ApiErrorBody,
-  LivekitTokenResponse,
-  PublicConfig,
-  SttResponse,
-} from "@shared/index";
 import type { Session } from "./session";
+
+export interface ApiErrorBody {
+  error?: string;
+  message?: string;
+}
+
+export interface PublicConfig {
+  livekitConfigured: boolean;
+  livekitUrl: string | null;
+  supabaseConfigured?: boolean;
+  minPlayers: number;
+  maxPlayers: number;
+}
+
+export interface LivekitTokenResponse {
+  url: string;
+  token: string;
+  roomName: string;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -28,7 +41,7 @@ async function toApiError(response: Response): Promise<ApiError> {
   try {
     const body: unknown = await response.json();
     if (isRecord(body)) {
-      const parsed = body as Partial<ApiErrorBody>;
+      const parsed = body as ApiErrorBody;
       if (typeof parsed.error === "string") code = parsed.error;
       if (typeof parsed.message === "string") message = parsed.message;
     }
@@ -56,26 +69,4 @@ export async function requestLivekitToken(session: Session): Promise<LivekitToke
   });
   if (!response.ok) throw await toApiError(response);
   return (await response.json()) as LivekitTokenResponse;
-}
-
-/** Sube un clip de push-to-talk y devuelve la transcripción creada por el servidor. */
-export async function uploadClip(
-  session: Session,
-  clip: Blob,
-  durationMs: number,
-): Promise<SttResponse> {
-  const response = await fetch("/api/stt", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/octet-stream",
-      "x-room-code": session.code,
-      "x-player-id": session.playerId,
-      "x-session-token": session.token,
-      "x-audio-mime": clip.type || "audio/webm",
-      "x-clip-duration-ms": String(Math.round(durationMs)),
-    },
-    body: clip,
-  });
-  if (!response.ok) throw await toApiError(response);
-  return (await response.json()) as SttResponse;
 }
