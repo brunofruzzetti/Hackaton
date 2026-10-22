@@ -123,6 +123,40 @@ describe("Junta de Ruina · fases", () => {
     expect(president(room).id).not.toBe(firstPresident.id);
   });
 
+  it("un empate 3-3 rechaza la comisión", () => {
+    const { store, code, room } = setup(6, 16);
+    const pres = president(room);
+    store.nominate(code, pres.id, otherPlayer(room, pres.id).id);
+    const voters = room.players;
+    voters.slice(0, 3).forEach((player) => store.voteCommission(code, player.id, true));
+    voters.slice(3).forEach((player) => store.voteCommission(code, player.id, false));
+    expect(room.voteResult?.si).toBe(3);
+    expect(room.voteResult?.no).toBe(3);
+    expect(room.voteResult?.aprobada).toBe(false);
+    expect(room.phase).toBe("NOMINACION");
+    expect(room.rejectionCount).toBe(1);
+  });
+
+  it("si el presidente no nomina en 60 s, el servidor nomina al azar", () => {
+    const { store, room } = setup(5, 17);
+    const pres = president(room);
+    store.tick(Date.now() + 61_000);
+    expect(room.phase).toBe("VOTACION_COMISION");
+    expect(room.vocalId).not.toBeNull();
+    expect(room.vocalId).not.toBe(pres.id);
+  });
+
+  it("el anfitrión puede forzar el siguiente turno si alguien se cuelga", () => {
+    const { store, code, room, host } = setup(5, 18);
+    const firstPresident = president(room);
+    expect(() => store.forceAdvance(code, otherPlayer(room, host.player.id).id)).toThrow(
+      /anfitrión/i,
+    );
+    store.forceAdvance(code, host.player.id);
+    expect(room.phase).toBe("NOMINACION");
+    expect(president(room).id).not.toBe(firstPresident.id);
+  });
+
   it("tres rechazos seguidos dan el punto a los deshonestos", () => {
     const { store, code, room } = setup(5, 9);
     for (let i = 0; i < 3; i += 1) {

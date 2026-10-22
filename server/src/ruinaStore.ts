@@ -21,6 +21,7 @@ import {
 import { GameError } from "./errors.js";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const NOMINATION_MS = 60_000;
 const VOTE_MS = 60_000;
 const SIGN_MS = 60_000;
 const RESOLUTION_MS = 8_000;
@@ -247,7 +248,7 @@ export class RuinaStore {
     room.lastResult = null;
     room.winner = null;
     room.contract = room.contractDeck[0] ?? RUINA_CONTRACTS[0]!;
-    room.phaseEndsAt = null;
+    room.phaseEndsAt = Date.now() + NOMINATION_MS;
     room.lastActivityAt = Date.now();
 
     const split = ruinaTeamSplit(room.players.length);
@@ -329,6 +330,57 @@ export class RuinaStore {
     return room;
   }
 
+  /**
+   * Botón de emergencia del anfitrión. No sustituye a los timers: sirve para
+   * desatascar una demo si alguien se cuelga o cierra la pestaña.
+   */
+  forceAdvance(code: string, requesterId: string): Room {
+    const room = this.getRoomOrThrow(code);
+    const requester = this.requirePlayer(room, requesterId);
+    if (!requester.isHost) {
+      throw new GameError("NOT_HOST", "Solo el anfitrión puede forzar el turno.");
+    }
+
+    switch (room.phase) {
+      case "NOMINACION": {
+        room.presidentIndex = (room.presidentIndex + 1) % room.players.length;
+        room.vocalId = null;
+        room.votes.clear();
+        room.voteResult = null;
+        room.phaseEndsAt = Date.now() + NOMINATION_MS;
+        break;
+      }
+      case "VOTACION_COMISION": {
+        for (const player of room.players) {
+          if (!room.votes.has(player.id)) room.votes.set(player.id, false);
+        }
+        this.resolveCommission(room);
+        break;
+      }
+      case "FIRMA_CONTRATO": {
+        const president = this.president(room);
+        for (const player of [president, room.players.find((item) => item.id === room.vocalId)]) {
+          if (player && !room.signatures.has(player.id)) {
+            room.signatures.set(player.id, "LIMPIO");
+          }
+        }
+        room.signedIds = [...room.signatures.keys()];
+        this.resolveContract(room);
+        break;
+      }
+      case "RESOLUCION_RONDA": {
+        this.advanceRound(room);
+        break;
+      }
+      default:
+        throw new GameError("NOT_IN_PHASE", "No hay una fase que forzar.");
+    }
+
+    room.lastActivityAt = Date.now();
+    console.log(`[ruina] ${room.code}: ${requester.nombre} forzó el avance de fase`);
+    return room;
+  }
+
   chat(code: string, playerId: string, text: string): RuinaChatMessage {
     const room = this.getRoomOrThrow(code);
     const player = this.requirePlayer(room, playerId);
@@ -358,6 +410,11 @@ export class RuinaStore {
   tick(now = Date.now()): string[] {
     const changed: string[] = [];
     for (const room of this.rooms.values()) {
+      if (room.phase === "NOMINACION" && room.phaseEndsAt !== null && now >= room.phaseEndsAt) {
+        this.autoNominate(room, now);
+        changed.push(room.code);
+        continue;
+      }
       if (room.phase === "VOTACION_COMISION" && room.phaseEndsAt !== null && now >= room.phaseEndsAt) {
         for (const player of room.players) {
           if (!room.votes.has(player.id)) room.votes.set(player.id, false);
@@ -475,9 +532,36 @@ export class RuinaStore {
     return room.players[room.presidentIndex] ?? null;
   }
 
+  /** Si el presidente no nomina en 60 s, el servidor elige un vocal al azar. */
+  private autoNominate(room: Room, now: number): void {
+    const president = this.president(room);
+    if (!president) return;
+    const eligible = room.players.filter(
+      (player) => player.id !== president.id && player.connected,
+    );
+    const fallback = room.players.filter((player) => player.id !== president.id);
+    const pool = eligible.length > 0 ? eligible : fallback;
+    if (pool.length === 0) {
+      room.presidentIndex = (room.presidentIndex + 1) % room.players.length;
+      room.phaseEndsAt = now + NOMINATION_MS;
+      return;
+    }
+    const vocal = pool[randomInt(0, pool.length)]!;
+    room.vocalId = vocal.id;
+    room.phase = "VOTACION_COMISION";
+    room.votes.clear();
+    room.voteResult = null;
+    room.phaseEndsAt = now + VOTE_MS;
+    room.lastActivityAt = now;
+    console.log(
+      `[ruina] ${room.code}: nominación automática de ${vocal.nombre} (presidente ${president.nombre} no nominó)`,
+    );
+  }
+
   private resolveCommission(room: Room): void {
     const si = [...room.votes.values()].filter(Boolean).length;
     const no = room.votes.size - si;
+    // Mayoría simple estricta: 3-3, 4-4 o cualquier empate se rechaza.
     const aprobada = si > no;
     const votos = Object.fromEntries(room.votes.entries());
     room.voteResult = { aprobada, si, no, votos };
@@ -503,7 +587,7 @@ export class RuinaStore {
     room.presidentIndex = (room.presidentIndex + 1) % room.players.length;
     room.vocalId = null;
     room.phase = "NOMINACION";
-    room.phaseEndsAt = null;
+    room.phaseEndsAt = Date.now() + NOMINATION_MS;
     // Se conserva voteResult para que la sala vea los votos públicos del rechazo.
   }
 
@@ -568,7 +652,7 @@ export class RuinaStore {
     room.signatures.clear();
     room.signedIds = [];
     room.lastResult = null;
-    room.phaseEndsAt = null;
+    room.phaseEndsAt = Date.now() + NOMINATION_MS;
     room.contract =
       room.contractDeck[room.round - 1] ??
       shuffle(RUINA_CONTRACTS)[0] ??

@@ -68,7 +68,8 @@ export function useSupabaseRoom(code: string | null): SupabaseRoomSnapshot {
       if (salaRow && typeof salaRow.id === "string") {
         const playersResponse = await supabase
           .from("jugadores")
-          .select("*")
+          // Solo columnas públicas. Nunca seleccionar equipos/secretos aquí.
+          .select("id,sala_id,nombre,piso,es_anfitrion,conectado")
           .eq("sala_id", salaRow.id);
         if (cancelled) return;
         if (playersResponse.error) {

@@ -339,3 +339,17 @@ Tailwind. El CSS propio se reduce a base, tipografía manuscrita y animaciones d
 ### D-108 · Presidencia inicial y rotación
 La primera presidencia es el índice 0 (primer asiento). Rota al siguiente índice tras cada
 rechazo y al empezar una nueva ronda. No hay elección de presidente ni término especial.
+
+### D-109 · Desatascar fases y desconexiones
+La nominación también caduca a los 60 s: si el presidente no elige vocal, el servidor
+nomina a un jugador conectado al azar. Votación y firma ya tenían 60 s. Además, el
+anfitrión dispone de `force_advance`: en nominación rota el presidente; en votación rellena
+los votos ausentes como rechazo; en firma rellena las firmas ausentes como limpias; en
+resolución avanza. Los timers siguen siendo la protección principal.
+
+### D-110 · Privacidad Supabase y sonidos
+`jugadores` solo contiene columnas públicas. Equipos, compañeros y secretos se guardan en
+`expedientes`, con RLS activa y sin políticas para `anon`; solo `service_role` accede. El
+cliente selecciona explícitamente columnas públicas y el WS solo envía `private_info` al
+socket del jugador. Los efectos (martillazo, sobre y victoria) se generan con Web Audio API
+en el cliente, sin assets, con preferencia de silencio persistida.

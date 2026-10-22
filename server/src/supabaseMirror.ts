@@ -6,6 +6,63 @@ interface SupabaseMirrorConfig {
   key: string;
 }
 
+export interface PublicPlayerRow {
+  id: string;
+  sala_id: string;
+  nombre: string;
+  piso: string;
+  es_anfitrion: boolean;
+  conectado: boolean;
+}
+
+export interface ExpedienteRow {
+  jugador_id: string;
+  sala_id: string;
+  equipo: "HONESTOS" | "DESHONESTOS";
+  companeros: Array<{ id: string; nombre: string; piso: string }>;
+  secreto: RuinaPrivateInfo["secreto"];
+}
+
+/** Filas públicas: nunca deben incluir equipo, compañeros ni secreto. */
+export function buildPublicPlayerRows(room: Room, salaId: string): PublicPlayerRow[] {
+  return room.players.map((player) => ({
+    id: player.id,
+    sala_id: salaId,
+    nombre: player.nombre,
+    piso: player.piso,
+    es_anfitrion: player.isHost,
+    conectado: player.connected,
+  }));
+}
+
+/** Filas privadas para `expedientes` (solo service_role). */
+export function buildExpedienteRows(room: Room, salaId: string): ExpedienteRow[] {
+  const rows: ExpedienteRow[] = [];
+  for (const player of room.players) {
+    const equipo = player.team;
+    const secreto = room.secrets.get(player.id);
+    if (!equipo || !secreto) continue;
+    const privateInfo: RuinaPrivateInfo = {
+      equipo,
+      companeros:
+        equipo === "DESHONESTOS"
+          ? room.players
+              .filter((other) => other.team === "DESHONESTOS" && other.id !== player.id)
+              .map((other) => ({ id: other.id, nombre: other.nombre, piso: other.piso }))
+          : [],
+      secreto,
+    };
+    rows.push({
+      jugador_id: player.id,
+      sala_id: salaId,
+      equipo: privateInfo.equipo,
+      companeros: privateInfo.companeros,
+      secreto: privateInfo.secreto,
+    });
+  }
+  return rows;
+}
+
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");
 }
@@ -62,39 +119,15 @@ export class SupabaseMirror {
       );
       if (!sala || typeof sala.id !== "string") return;
 
-      const players = room.players.map((player) => {
-        const equipo = player.team;
-        const secreto = room.secrets.get(player.id);
-        const privateInfo: RuinaPrivateInfo | null =
-          equipo && secreto
-            ? {
-                equipo,
-                companeros:
-                  equipo === "DESHONESTOS"
-                    ? room.players
-                        .filter((other) => other.team === "DESHONESTOS" && other.id !== player.id)
-                        .map((other) => ({
-                          id: other.id,
-                          nombre: other.nombre,
-                          piso: other.piso,
-                        }))
-                    : [],
-                secreto,
-              }
-            : null;
-        return {
-          id: player.id,
-          sala_id: sala.id,
-          nombre: player.nombre,
-          piso: player.piso,
-          es_deshonesto: player.team === "DESHONESTOS",
-          es_anfitrion: player.isHost,
-          conectado: player.connected,
-          informacion_privada: privateInfo,
-        };
-      });
+      // `jugadores` es público: solo columnas seguras. Los equipos y secretos
+      // van a `expedientes`, que no tiene políticas RLS para anon.
+      const players = buildPublicPlayerRows(room, sala.id);
+      const expedientes = buildExpedienteRows(room, sala.id);
 
       await this.upsert("jugadores", "id", players);
+      if (expedientes.length > 0) {
+        await this.upsert("expedientes", "jugador_id", expedientes);
+      }
     } catch (error: unknown) {
       if (!this.warned) {
         this.warned = true;
@@ -109,7 +142,7 @@ export class SupabaseMirror {
   private async upsert<T = unknown>(
     table: string,
     onConflict: string,
-    rows: Record<string, unknown> | Array<Record<string, unknown>>,
+    rows: object | object[],
   ): Promise<T | null> {
     const response = await fetch(
       `${this.config.url}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`,

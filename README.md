@@ -29,8 +29,13 @@ sin que se note.
      muestra el sobre, pero no se revela quién firmó el sabotaje.
 - El presidente rota al siguiente índice del array tras cada rechazo y al empezar una nueva
   ronda. La partida termina en cuanto un bando llega a 2 puntos.
+- Si el presidente no nomina en **60 s**, el servidor elige un vocal al azar. La votación y
+  la firma también caducan a los 60 s. El anfitrión tiene además un botón de emergencia
+  **Forzar siguiente fase**.
 - Los deshonestos se conocen entre sí y reciben la lista de compinches. El resto de la sala
   no ve equipos ni expedientes ajenos.
+- Efectos de sonido sintéticos con Web Audio API: martillazo al cerrar la votación, sobre al
+  revelar el resultado y fanfarria de victoria. Se pueden silenciar.
 
 ## Stack
 
@@ -78,9 +83,13 @@ El servidor hace un `upsert` best-effort del estado en `salas` y `jugadores`; el
 escucha `postgres_changes` con [`useSupabaseRoom`](client/src/hooks/useSupabaseRoom.ts).
 Sin credenciales, la UI muestra `WS local` y todo funciona igual.
 
-> **Aviso de seguridad**: las políticas RLS del schema son abiertas para desarrollo y
-> exponen `es_deshonesto` / `informacion_privada` a `anon`. Antes de producción, mueve esos
-> campos a una tabla privada y restringe las políticas. El README y el SQL lo indican.
+> **Privacidad**: `jugadores` contiene solo datos públicos (nombre, piso, conexión). Los
+> equipos, compañeros y secretos se guardan en `expedientes`, una tabla **sin políticas
+> para `anon`**; solo el servidor con `service_role` puede leerla. `jugadores` y `salas`
+> siguen con RLS abierta para el prototipo, así que no metas datos privados ahí.
+>
+> En el cliente, `useRuinaSocket` solo recibe tu `privateInfo` por tu propio socket, y
+> `useSupabaseRoom` selecciona explícitamente columnas públicas.
 
 ## Arquitectura
 
@@ -119,9 +128,12 @@ Se usa tanto en el servidor como en tests deterministas con un `rng` inyectable.
 
 `LOBBY → NOMINACION → VOTACION_COMISION → FIRMA_CONTRATO → RESOLUCION_RONDA → VICTORIA`
 
+- Nominación: 60 s; si no hay vocal, el servidor nomina al azar.
 - Votación: 60 s; los votos ausentes cuentan como rechazo.
 - Firma: 60 s; las firmas ausentes cuentan como limpias.
 - Resolución: 8 s y paso automático a la siguiente ronda o a victoria.
+- Emergencia: el anfitrión puede forzar la resolución de la fase actual con
+  `force_advance`.
 
 ## Tests y verificación
 

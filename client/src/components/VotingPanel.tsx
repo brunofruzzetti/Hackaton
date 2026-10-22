@@ -66,6 +66,16 @@ export function VotingPanel({ room, you, privateInfo, socket }: VotingPanelProps
   const alreadySigned = room.signedIds.includes(you.playerId);
   const isDishonest = privateInfo.equipo === "DESHONESTOS";
   const countdown = secondsLeft(room.phaseEndsAt, now);
+  const pendingSigner = [president, vocal].find(
+    (player) => player && !room.signedIds.includes(player.id),
+  );
+  const pendingRole =
+    pendingSigner?.id === president?.id ? "Presidente" : pendingSigner ? "Vocal" : null;
+  const otherCommissioner = isPresident ? vocal : isVocal ? president : null;
+  const otherRole = otherCommissioner?.id === president?.id ? "presidente" : "vocal";
+  const otherHasSigned = otherCommissioner
+    ? room.signedIds.includes(otherCommissioner.id)
+    : false;
 
   const showingCommission =
     room.phase === "VOTACION_COMISION" ||
@@ -121,7 +131,7 @@ export function VotingPanel({ room, you, privateInfo, socket }: VotingPanelProps
               </div>
             ) : (
               <p className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-semibold text-slate-500">
-                Voto emitido. Esperando al resto…
+                Voto emitido. Esperando al resto… ({room.votedIds.length}/{room.players.length})
               </p>
             )}
           </>
@@ -158,32 +168,50 @@ export function VotingPanel({ room, you, privateInfo, socket }: VotingPanelProps
             </div>
 
             {inCommission && !alreadySigned ? (
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => socket.sign("LIMPIO")}
-                  className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700"
-                >
-                  FIRMAR CONTRATO LIMPIO
-                </button>
-                {isDishonest && (
+              <div className="mt-3">
+                {otherHasSigned && otherCommissioner && (
+                  <p className="mb-2 rounded-lg bg-amber-50 px-2.5 py-2 text-center text-xs font-semibold text-amber-800">
+                    El {otherRole} {otherCommissioner.nombre} ya ha firmado. Falta tu firma.
+                  </p>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => socket.sign("SABOTAJE")}
-                    className="rounded-xl bg-red-600 px-4 py-3 font-black text-white transition hover:bg-red-700"
+                    onClick={() => socket.sign("LIMPIO")}
+                    className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700"
                   >
-                    COLAR SABOTAJE
+                    FIRMAR CONTRATO LIMPIO
                   </button>
-                )}
+                  {isDishonest && (
+                    <button
+                      type="button"
+                      onClick={() => socket.sign("SABOTAJE")}
+                      className="rounded-xl bg-red-600 px-4 py-3 font-black text-white transition hover:bg-red-700"
+                    >
+                      COLAR SABOTAJE
+                    </button>
+                  )}
+                </div>
               </div>
             ) : inCommission ? (
-              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-semibold text-slate-500">
-                Ya has firmado. Esperando la otra firma…
-              </p>
+              <div
+                aria-live="polite"
+                className="mt-3 rounded-xl bg-amber-50 px-3 py-3 text-center text-sm font-semibold text-amber-800"
+              >
+                <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                {pendingSigner
+                  ? `Esperando firma del ${pendingRole?.toLowerCase()} (${pendingSigner.nombre})…`
+                  : "Firmas completas. Abriendo el sobre…"}
+              </div>
             ) : (
-              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-semibold text-slate-500">
-                La comisión está firmando en secreto.
-              </p>
+              <div
+                aria-live="polite"
+                className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-semibold text-slate-500"
+              >
+                {pendingSigner
+                  ? `La comisión está firmando. Falta el ${pendingRole?.toLowerCase()} (${pendingSigner.nombre}).`
+                  : "La comisión ha terminado de firmar. Abriendo el sobre…"}
+              </div>
             )}
           </div>
         )}
@@ -198,12 +226,18 @@ export function VotingPanel({ room, you, privateInfo, socket }: VotingPanelProps
           <h2 className="text-lg font-black text-slate-900">Nominación</h2>
           <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
             Presidente: {president?.nombre ?? "—"}
+            {countdown !== null && ` · ${countdown}s`}
           </span>
         </div>
         <p className="mt-2 text-sm text-slate-600">
           El presidente elige a un vocal para la Comisión de Obras. La comisión firmará el contrato
           después, a solas.
         </p>
+        {!isPresident && countdown !== null && (
+          <p className="mt-1 text-xs text-slate-400">
+            Si el presidente no nomina a tiempo, el servidor elegirá un vocal al azar.
+          </p>
+        )}
 
         <VoteResult room={room} />
 

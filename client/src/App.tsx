@@ -4,6 +4,7 @@ import { ResolutionModal } from "./components/ResolutionModal";
 import { VotingPanel } from "./components/VotingPanel";
 import { RuinaAudio } from "./components/ruina/RuinaAudio";
 import { RuinaChat } from "./components/ruina/RuinaChat";
+import { useGameSounds } from "./hooks/useGameSounds";
 import { useRuinaSocket } from "./hooks/useRuinaSocket";
 import { useSupabaseRoom } from "./hooks/useSupabaseRoom";
 import { codeFromUrl } from "./lib/session";
@@ -11,6 +12,7 @@ import { codeFromUrl } from "./lib/session";
 export function App() {
   const game = useRuinaSocket();
   const realtime = useSupabaseRoom(game.room?.code ?? null);
+  const sounds = useGameSounds(game.room);
   const initialCode = codeFromUrl();
   const realtimeBadge = { configured: realtime.configured, connected: realtime.connected };
   const busy = game.status === "connecting" || game.status === "reconnecting";
@@ -111,17 +113,37 @@ export function App() {
           </aside>
         </div>
 
-        <footer className="mt-5 flex items-center justify-between">
+        <footer className="mt-5 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-semibold text-slate-500">
             {game.status === "connected" ? "Conectado" : "Reconectando…"}
           </span>
-          <button
-            type="button"
-            onClick={game.leave}
-            className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-200"
-          >
-            Salir
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={sounds.toggleSound}
+              className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-200"
+              title="Activar o silenciar los efectos"
+            >
+              {sounds.soundEnabled ? "🔊 Sonido" : "🔇 Silencio"}
+            </button>
+            {game.you.isHost && game.room.phase !== "VICTORIA" && (
+              <button
+                type="button"
+                onClick={game.forceAdvance}
+                title="Emergencia: resuelve la fase actual y avanza"
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+              >
+                Forzar siguiente fase
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={game.leave}
+              className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-200"
+            >
+              Salir
+            </button>
+          </div>
         </footer>
       </div>
 

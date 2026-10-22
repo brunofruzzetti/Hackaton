@@ -80,6 +80,7 @@ describe("Junta de Ruina · configuración", () => {
     expect(
       ruinaClientMessageSchema.safeParse({ type: "create_room", nombre: "Ana" }).success,
     ).toBe(true);
+    expect(ruinaClientMessageSchema.safeParse({ type: "force_advance" }).success).toBe(true);
     expect(
       ruinaClientMessageSchema.safeParse({ type: "nominate", vocalId: "p2" }).success,
     ).toBe(true);

@@ -130,6 +130,11 @@ export class RuinaWsHub {
           this.sendPrivateInfos(session.code);
           return;
         }
+        case "force_advance": {
+          this.store.forceAdvance(session.code, session.playerId);
+          this.broadcastState(session.code);
+          return;
+        }
         case "nominate": {
           this.store.nominate(session.code, session.playerId, message.vocalId);
           this.broadcastState(session.code);

@@ -1,10 +1,10 @@
 -- ============================================================
 -- Junta de Ruina · esquema Supabase (desarrollo)
 -- ============================================================
--- AVISO: las políticas RLS de este archivo son deliberadamente abiertas para
--- que puedas prototipar sin auth. En producción NO dejes que "anon" lea
--- `es_deshonesto` ni `informacion_privada`: mueve esos campos a una tabla
--- privada y usa una Edge Function o el servidor con service_role.
+-- AVISO: las políticas RLS de `salas` y `jugadores` son deliberadamente
+-- abiertas para prototipar sin auth. La tabla `expedientes` (equipo, compañeros
+-- y secreto) NO tiene políticas para anon: solo el servidor con service_role
+-- puede leerla. Nunca añadas `expedientes` a Realtime.
 --
 -- Ejecuta este archivo en el SQL Editor de Supabase. Después configura:
 --   VITE_SUPABASE_URL=...
@@ -45,15 +45,31 @@ create table if not exists public.jugadores (
   sala_id uuid not null references public.salas(id) on delete cascade,
   nombre text not null check (char_length(nombre) between 2 and 20),
   piso text not null,
-  es_deshonesto boolean not null default false,
   es_anfitrion boolean not null default false,
   conectado boolean not null default true,
-  informacion_privada jsonb,
   creado_en timestamptz not null default now(),
   actualizado_en timestamptz not null default now(),
   unique (sala_id, nombre),
   unique (sala_id, piso)
 );
+
+-- Migración de una instalación anterior: los datos privados nunca deben estar
+-- en una tabla que lea `anon`.
+alter table public.jugadores drop column if exists es_deshonesto;
+alter table public.jugadores drop column if exists informacion_privada;
+
+-- Información privada: solo service_role. No hay políticas RLS para anon.
+create table if not exists public.expedientes (
+  jugador_id uuid primary key references public.jugadores(id) on delete cascade,
+  sala_id uuid not null references public.salas(id) on delete cascade,
+  equipo text not null check (equipo in ('HONESTOS', 'DESHONESTOS')),
+  companeros jsonb not null default '[]'::jsonb,
+  secreto jsonb not null,
+  actualizado_en timestamptz not null default now()
+);
+
+alter table public.expedientes enable row level security;
+revoke all on public.expedientes from anon, authenticated;
 
 create index if not exists jugadores_sala_id_idx on public.jugadores (sala_id);
 create index if not exists salas_codigo_idx on public.salas (codigo);

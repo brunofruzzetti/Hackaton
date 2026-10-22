@@ -301,6 +301,7 @@ export const ruinaClientMessageSchema = z.discriminatedUnion("type", [
     token: z.string().min(1).max(128).optional(),
   }),
   z.object({ type: z.literal("start_game") }),
+  z.object({ type: z.literal("force_advance") }),
   z.object({ type: z.literal("nominate"), vocalId: z.string().min(1).max(64) }),
   z.object({ type: z.literal("vote_commission"), approve: z.boolean() }),
   z.object({ type: z.literal("sign_contract"), choice: z.enum(["LIMPIO", "SABOTAJE"]) }),

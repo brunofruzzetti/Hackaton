@@ -68,8 +68,10 @@ fueron eliminados.
 - No se revela qué jugador sabotó, solo cuántos sabotajes hubo.
 - El presidente rota al siguiente índice tras cada rechazo y al empezar cada ronda.
 - Bo3: al llegar a 2 puntos se pasa a `VICTORIA`; no se juega la ronda 3 si ya hay 2-0.
-- Timeouts: 60 s por votación (ausente = rechazo), 60 s por firma (ausente = limpio), 8 s de
-  resolución antes de avanzar.
+- Timeouts: 60 s por nominación (auto-nominación aleatoria), 60 s por votación (ausente =
+  rechazo), 60 s por firma (ausente = limpio), 8 s de resolución antes de avanzar.
+- El anfitrión puede enviar `force_advance` para desatascar la fase actual; no sustituye a
+  los timers.
 - La primera presidencia es el índice 0 (primer asiento).
 - La reconexión usa `playerId` + token de sesión; no se admiten jugadores nuevos con la
   partida empezada.
@@ -86,10 +88,13 @@ fueron eliminados.
   `[env]`.
 - Errores de red/LiveKit/Supabase no deben tumbar la partida: se capturan, se loguean y se
   avisa al cliente.
+- Sonidos con Web Audio API en `client/src/lib/sfx.ts` y `useGameSounds`; sin assets
+  externos. Mantener un toggle de silencio.
 - Mobile-first: botones grandes, una columna, Tailwind, sin hover como única affordance.
 - Imports compartidos con alias `@shared/...` (Vite y tsconfig).
-- Supabase RLS abierta es **solo para desarrollo**; no moverla a producción sin separar
-  campos privados.
+- Supabase RLS abierta es **solo para desarrollo**. `salas`/`jugadores` son públicos;
+  equipos y secretos viven en `expedientes`, sin políticas para `anon`. No añadir
+  `expedientes` a Realtime ni volver a meter campos privados en `jugadores`.
 
 ## Pruebas
 
