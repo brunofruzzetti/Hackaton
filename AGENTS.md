@@ -42,7 +42,8 @@ fueron eliminados.
 - `client/src/components/PlayerCredential.tsx`: credencial privada plegable y post-it.
 - `client/src/components/NeighborBoard.tsx`: tablero de buzones 2/4 columnas.
 - `client/src/components/PortalScene.tsx`: panorámica cenital con avatares pixel-art sentados
-  en U, alfombra y mesa frontal; el presidente y el vocal se sientan delante.
+  en U, mesa de café grande y mesa frontal pequeña; el presidente y el vocal se sientan
+  delante. La escena se llama **JUNTA URGENTE** y solo muestra nombres de personajes.
 - `client/src/components/ContractFolder.tsx`: carpeta azul del contrato de obra.
 - `client/src/components/PlayerDashboard.tsx`: compone header, credencial, contrato y tablero.
 - `client/src/components/VotingPanel.tsx`: nominación, votación pública y firma secreta.

@@ -14,7 +14,7 @@ function hash(text: string): number {
   return value;
 }
 
-function PixelAvatar({ seed, isAi, size = 34 }: { seed: string; isAi: boolean; size?: number }) {
+function PixelAvatar({ seed, isAi, size = 30 }: { seed: string; isAi: boolean; size?: number }) {
   const h = hash(seed);
   const hair = HAIRS[h % HAIRS.length] ?? HAIRS[0]!;
   const shirt = SHIRTS[(h >>> 3) % SHIRTS.length] ?? SHIRTS[0]!;
@@ -22,13 +22,7 @@ function PixelAvatar({ seed, isAi, size = 34 }: { seed: string; isAi: boolean; s
 
   if (isAi) {
     return (
-      <svg
-        viewBox="0 0 16 24"
-        width={size}
-        height={size * 1.5}
-        shapeRendering="crispEdges"
-        aria-hidden="true"
-      >
+      <svg viewBox="0 0 16 24" width={size} height={size * 1.5} shapeRendering="crispEdges" aria-hidden="true">
         <rect x="7" y="0" width="2" height="3" fill="#0f172a" />
         <rect x="7" y="0" width="2" height="1" fill="#38bdf8" />
         <rect x="3" y="3" width="10" height="7" fill="#cbd5e1" />
@@ -47,13 +41,7 @@ function PixelAvatar({ seed, isAi, size = 34 }: { seed: string; isAi: boolean; s
   }
 
   return (
-    <svg
-      viewBox="0 0 16 24"
-      width={size}
-      height={size * 1.5}
-      shapeRendering="crispEdges"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 16 24" width={size} height={size * 1.5} shapeRendering="crispEdges" aria-hidden="true">
       <rect x="4" y="0" width="8" height="3" fill={hair} />
       <rect x="3" y="3" width="10" height="5" fill={skin} />
       <rect x="4" y="2" width="8" height="2" fill={hair} />
@@ -81,26 +69,25 @@ interface SeatPosition {
   top: number;
 }
 
-const LOBBY_SEATS: SeatPosition[] = [
-  { left: 13, top: 31 },
-  { left: 9, top: 57 },
-  { left: 14, top: 81 },
-  { left: 34, top: 20 },
-  { left: 50, top: 14 },
-  { left: 66, top: 20 },
-  { left: 87, top: 31 },
-  { left: 91, top: 57 },
-];
+/**
+ * Posiciones simétricas para una U abierta hacia la mesa frontal. Si hay
+ * pocos jugadores se concentran arriba/centro; si hay muchos, bajan por los
+ * laterales. Todas las filas están centradas respecto al 50 %.
+ */
+const U_SEATS: Record<number, SeatPosition[]> = {
+  1: [{ left: 50, top: 28 }],
+  2: [{ left: 39, top: 27 }, { left: 61, top: 27 }],
+  3: [{ left: 24, top: 34 }, { left: 50, top: 28 }, { left: 76, top: 34 }],
+  4: [{ left: 17, top: 41 }, { left: 37, top: 28 }, { left: 63, top: 28 }, { left: 83, top: 41 }],
+  5: [{ left: 14, top: 49 }, { left: 17, top: 32 }, { left: 50, top: 28 }, { left: 83, top: 32 }, { left: 86, top: 49 }],
+  6: [{ left: 13, top: 54 }, { left: 10, top: 35 }, { left: 34, top: 28 }, { left: 66, top: 28 }, { left: 90, top: 35 }, { left: 87, top: 54 }],
+  7: [{ left: 13, top: 58 }, { left: 9, top: 39 }, { left: 29, top: 29 }, { left: 50, top: 27 }, { left: 71, top: 29 }, { left: 91, top: 39 }, { left: 87, top: 58 }],
+  8: [{ left: 13, top: 60 }, { left: 9, top: 43 }, { left: 13, top: 31 }, { left: 36, top: 28 }, { left: 64, top: 28 }, { left: 87, top: 31 }, { left: 91, top: 43 }, { left: 87, top: 60 }],
+};
 
-const ASSEMBLY_SEATS: SeatPosition[] = [
-  { left: 13, top: 33 },
-  { left: 9, top: 60 },
-  { left: 35, top: 20 },
-  { left: 65, top: 20 },
-  { left: 87, top: 33 },
-  { left: 91, top: 60 },
-  { left: 50, top: 13 },
-];
+function uSeats(count: number): SeatPosition[] {
+  return U_SEATS[Math.max(0, Math.min(8, count))] ?? [];
+}
 
 interface SceneSeatProps {
   player: RuinaPlayerPublic;
@@ -123,39 +110,33 @@ function SceneSeat({ player, position, isYou, role, isTurn, front }: SceneSeatPr
       >
         {role && (
           <span
-            className={`absolute -top-2 z-30 -rotate-2 whitespace-nowrap border border-black px-1 py-0.5 font-mono text-[6px] font-black uppercase shadow-[1px_1px_0_0_#000] sm:text-[8px] ${
-              role === "PRESIDENTE" ? "bg-[#fef08a]" : "bg-[#38bdf8]"
-            }`}
+            className="absolute -top-2 z-30 border border-black bg-[#fef08a] px-1 py-0.5 text-[8px] leading-none shadow-[1px_1px_0_0_#000]"
+            aria-hidden="true"
           >
-            {role === "PRESIDENTE" ? "🔑 PRESIDENTE" : "VOCAL"}
+            {role === "PRESIDENTE" ? "🔑" : "📄"}
           </span>
         )}
 
         <div
-          className={`relative flex h-[48px] w-[38px] items-end justify-center border-2 border-black bg-[#b8a78f] shadow-[2px_2px_0_0_#000] sm:h-[58px] sm:w-[46px] ${
+          className={`relative flex h-[37px] w-[29px] items-end justify-center border-2 border-black bg-[#b8a78f] shadow-[2px_2px_0_0_#000] sm:h-[43px] sm:w-[34px] ${
             isYou ? "ring-[3px] ring-[#fef08a]" : ""
           } ${front ? "bg-[#fef08a]" : ""}`}
         >
-          <div className="absolute inset-x-0 bottom-0 h-[7px] border-t-2 border-black bg-[#8b5e3c]" />
-          <div className="absolute inset-x-1 top-0 h-[4px] border-b border-black/40 bg-[#d6c8b2]" />
-          <div className="relative z-10 mb-[3px]">
-            <PixelAvatar
-              seed={player.id}
-              isAi={player.isAi}
-              size={front ? 28 : 24}
-            />
+          <div className="absolute inset-x-0 bottom-0 h-[6px] border-t-2 border-black bg-[#8b5e3c]" />
+          <div className="absolute inset-x-1 top-0 h-[3px] border-b border-black/40 bg-[#d6c8b2]" />
+          <div className="relative z-10 mb-[2px]">
+            <PixelAvatar seed={player.id} isAi={player.isAi} size={front ? 22 : 19} />
           </div>
-          <div className="absolute -bottom-[5px] left-1/2 h-[4px] w-[28px] -translate-x-1/2 border-x-2 border-black bg-[#6b4423]" />
+          <div className="absolute -bottom-[4px] left-1/2 h-[3px] w-[22px] -translate-x-1/2 border-x-2 border-black bg-[#6b4423]" />
         </div>
 
-        <div className="mt-1 max-w-[56px] border border-black bg-[#fffdf7] px-1 py-0.5 text-center shadow-[1px_1px_0_0_#000] sm:max-w-[82px]">
-          <p className="truncate font-mono text-[7px] font-black uppercase leading-tight sm:text-[9px]">
+        <div className="mt-0.5 max-w-[48px] border border-black bg-[#fffdf7] px-0.5 py-0.5 text-center shadow-[1px_1px_0_0_#000] sm:max-w-[58px]">
+          <p className="truncate font-mono text-[6px] font-black uppercase leading-tight sm:text-[7px]">
             {player.nombre}
           </p>
-          <p className="font-mono text-[6px] font-bold uppercase leading-tight text-stone-500 sm:text-[7px]">
+          <p className="font-mono text-[5px] font-bold uppercase leading-tight text-stone-500 sm:text-[6px]">
             {player.piso}
-            {player.isAi ? " · IA" : ""}
-            {isYou ? " · TÚ" : ""}
+            {player.isAi ? " 🤖" : ""}
           </p>
         </div>
       </div>
@@ -173,90 +154,84 @@ export function PortalScene({ room, you }: PortalSceneProps) {
     : (room.players.find((player) => player.id === room.vocalId) ?? null);
   const seated = inLobby
     ? room.players
-    : room.players.filter(
-        (player) => player.id !== president?.id && player.id !== vocal?.id,
-      );
-
-  const positions = inLobby ? LOBBY_SEATS : ASSEMBLY_SEATS;
+    : room.players.filter((player) => player.id !== president?.id && player.id !== vocal?.id);
+  const positions = uSeats(seated.length);
 
   return (
     <section className={`${BRUTAL.cardLg} overflow-hidden`}>
       <div className="flex items-center justify-between border-b-[3px] border-black bg-[#d6c8b2] px-3 py-1.5">
-        <div>
-          <p className={`${BRUTAL.label} text-stone-600`}>PANORÁMICA DEL PORTAL · VISTA SUPERIOR</p>
-          <h2 className="text-lg font-black uppercase leading-none tracking-tight">
-            {inLobby ? "El portal espera" : "La asamblea en U"}
-          </h2>
-        </div>
-        <span className="rotate-2 border-2 border-black bg-[#fef08a] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
-          {inLobby ? "SIN ABRIR" : "EN SESIÓN"}
+        <h2 className="text-lg font-black uppercase leading-none tracking-tight">JUNTA URGENTE</h2>
+        <span className="text-lg" aria-hidden="true">
+          🏢
         </span>
       </div>
 
-      <div className="relative aspect-[16/11] min-h-[230px] overflow-hidden bg-[#d6c8b2]">
-        {/* Pared superior del portal */}
-        <div className="absolute inset-x-0 top-0 h-[23%] border-b-[3px] border-black bg-[#9bb7c4]">
-          <div className="absolute bottom-0 left-[4%] h-[82%] w-[9%] border-2 border-black bg-[#1e4b6b]">
+      <div className="relative aspect-[4/3] min-h-[250px] overflow-hidden bg-[#d6c8b2]">
+        {/* Pared del portal, sin rótulos */}
+        <div className="absolute inset-x-0 top-0 h-[24%] border-b-[3px] border-black bg-[#9bb7c4]">
+          <div className="absolute bottom-0 left-[3%] h-[80%] w-[8%] border-2 border-black bg-[#1e4b6b]">
             <span className="absolute right-1 top-1/2 h-1 w-1 rounded-full bg-[#fef08a]" />
-            <span className="absolute inset-x-1 bottom-1 text-center font-mono text-[5px] font-black text-white">
-              PORTAL
-            </span>
           </div>
-          <div className="absolute bottom-1 left-[23%] h-[65%] w-[28%] rotate-[-1deg] border-2 border-black bg-[#fef08a] p-1 shadow-[2px_2px_0_0_#000]">
-            <div className="mx-auto h-[45%] w-[80%] border border-black bg-[#d6c8b2]" />
-            <p className="text-center font-mono text-[5px] font-black uppercase">
-              FOTO DE LA COMUNIDAD
-            </p>
-          </div>
-          <div className="absolute bottom-1 left-[55%] h-[55%] w-[12%] border-2 border-black bg-[#fffdf7] p-1">
-            <p className="text-center font-mono text-[5px] font-black uppercase">TABLÓN</p>
-            <div className="mt-0.5 h-1 w-full bg-[#38bdf8]" />
-            <div className="mt-0.5 h-1 w-2/3 bg-[#ef4444]" />
-          </div>
-          <div className="absolute bottom-0 right-[5%] h-[82%] w-[9%] border-2 border-black bg-[#1e4b6b]">
+          <div className="absolute bottom-0 right-[3%] h-[80%] w-[8%] border-2 border-black bg-[#1e4b6b]">
             <span className="absolute right-1 top-1/2 h-1 w-1 rounded-full bg-[#fef08a]" />
-            <span className="absolute inset-x-1 bottom-1 text-center font-mono text-[5px] font-black text-white">
-              GARAJE
-            </span>
+          </div>
+
+          {/* Tablón de la derrama: papeles, chinchetas y visual, sin texto */}
+          <div className="absolute left-[36%] top-[3%] h-[88%] w-[28%] border-2 border-black bg-[#b8865a] p-1 shadow-[2px_2px_0_0_#000]">
+            <div className="grid h-full grid-cols-2 gap-0.5">
+              <div className="border border-black bg-[#fffdf7] p-0.5">
+                <div className="h-1 w-3/4 bg-stone-300" />
+                <div className="mt-0.5 h-1 w-full bg-stone-300" />
+                <div className="mt-0.5 h-1 w-2/3 bg-red-300" />
+              </div>
+              <div className="border border-black bg-[#fef08a] p-0.5">
+                <div className="h-1 w-2/3 bg-stone-400" />
+                <div className="mt-0.5 h-1 w-full bg-stone-300" />
+                <div className="mt-0.5 h-1 w-3/4 bg-stone-300" />
+              </div>
+              <div className="col-span-2 border border-black bg-[#fffdf7] p-0.5">
+                <div className="flex items-center justify-between">
+                  <div className="h-1 w-1/2 bg-stone-300" />
+                  <span className="text-[7px] leading-none">🪙</span>
+                </div>
+                <div className="mt-0.5 h-1 w-3/4 bg-red-300" />
+              </div>
+            </div>
+            <span className="absolute -top-1 left-1 h-1 w-1 rounded-full bg-red-600" />
+            <span className="absolute -top-1 right-2 h-1 w-1 rounded-full bg-blue-600" />
           </div>
         </div>
 
-        {/* Suelo y alfombra central */}
-        <div className="absolute inset-x-0 bottom-0 top-[23%] bg-[#f1e9dc]" />
-        <div className="absolute left-1/2 top-[51%] h-[26%] w-[48%] -translate-x-1/2 -translate-y-1/2 border-2 border-[#8b5e3c] bg-[#c4a27a]">
-          <div className="absolute inset-1 border border-dashed border-[#8b5e3c]/70" />
-          <div className="absolute left-1/2 top-1/2 h-[42%] w-[42%] -translate-x-1/2 -translate-y-1/2 border-2 border-black bg-[#fffdf7] shadow-[2px_2px_0_0_#000]">
-            <p className="mt-1 text-center font-mono text-[5px] font-black uppercase text-stone-500">
-              MESA DE CAFÉ
-            </p>
-            <div className="mx-auto mt-0.5 h-1 w-3/4 bg-[#d6c8b2]" />
-            <div className="mx-auto mt-0.5 h-1 w-1/2 bg-[#d6c8b2]" />
+        {/* Suelo */}
+        <div className="absolute inset-x-0 bottom-0 top-[24%] bg-[#f1e9dc]" />
+
+        {/* Mesa de café grande, sin rótulos; más ancha que la mesa de la comisión */}
+        <div className="absolute left-1/2 top-[49%] h-[16%] w-[56%] -translate-x-1/2 -translate-y-1/2 border-[3px] border-black bg-[#fffdf7] shadow-[4px_4px_0_0_#000]">
+          <div className="absolute inset-1 border border-stone-300" />
+          <div className="absolute left-[14%] top-[22%] h-[28%] w-[18%] rounded-full border-2 border-black bg-[#e7dfd2]" />
+          <div className="absolute right-[16%] top-[30%] h-[22%] w-[14%] rounded-full border-2 border-black bg-[#e7dfd2]" />
+          <div className="absolute left-[42%] top-[25%] h-[38%] w-[18%] rotate-2 border border-black bg-[#fef08a]">
+            <div className="mt-1 h-0.5 w-2/3 bg-stone-300" />
+            <div className="mt-0.5 h-0.5 w-1/2 bg-stone-300" />
           </div>
         </div>
 
-        {/* Mesa frontal / comisión */}
+        {/* Mesa frontal pequeña para la comisión */}
         {inLobby ? (
-          <div className="absolute bottom-[7%] left-1/2 w-[46%] -translate-x-1/2 border-2 border-dashed border-black/50 bg-white/40 px-2 py-1.5 text-center font-mono text-[7px] font-bold uppercase text-stone-600">
-            LA MESA FRONTAL SE ABRE AL EMPEZAR
-          </div>
+          <div className="absolute bottom-[7%] left-1/2 h-[10%] w-[30%] -translate-x-1/2 border-2 border-dashed border-black/40 bg-white/30" />
         ) : (
           <>
-            <div className="absolute bottom-[7%] left-1/2 z-10 w-[43%] -translate-x-1/2 border-[3px] border-black bg-[#8b5e3c] p-1 shadow-[4px_4px_0_0_#000]">
-              <div className="border-2 border-black bg-[#a16207] px-1 py-0.5 text-center">
-                <p className="font-mono text-[6px] font-black uppercase text-[#fef08a]">
-                  MESA FRONTAL · LLAVE DEL PORTAL
-                </p>
-              </div>
-              <div className="mt-0.5 flex items-center justify-between px-1">
-                <span className="text-[10px]">📄</span>
+            <div className="absolute bottom-[7%] left-1/2 h-[8%] w-[29%] -translate-x-1/2 border-[3px] border-black bg-[#8b5e3c] p-1 shadow-[3px_3px_0_0_#000]">
+              <div className="flex h-full items-center justify-between border border-black bg-[#a16207] px-1">
                 <span className="h-1 w-1/3 bg-[#fef08a]" />
-                <span className="text-[10px]">☕</span>
+                <span className="text-[8px]">📄</span>
+                <span className="h-1 w-1/4 bg-[#fef08a]" />
               </div>
             </div>
             {president && (
               <SceneSeat
                 player={president}
-                position={{ left: 43, top: 73 }}
+                position={{ left: 43, top: 75 }}
                 isYou={president.id === you.playerId}
                 role="PRESIDENTE"
                 isTurn={room.phase === "NOMINACION"}
@@ -266,23 +241,19 @@ export function PortalScene({ room, you }: PortalSceneProps) {
             {vocal ? (
               <SceneSeat
                 player={vocal}
-                position={{ left: 57, top: 73 }}
+                position={{ left: 57, top: 75 }}
                 isYou={vocal.id === you.playerId}
                 role="VOCAL"
                 front
               />
             ) : (
-              <div className="absolute left-[57%] top-[73%] z-10 -translate-x-1/2 -translate-y-1/2 border-2 border-dashed border-black/50 bg-white/50 px-1.5 py-1 text-center font-mono text-[6px] font-black uppercase text-stone-500">
-                VOCAL
-                <br />
-                PENDIENTE
-              </div>
+              <div className="absolute left-[57%] top-[75%] z-10 h-[37px] w-[29px] -translate-x-1/2 -translate-y-1/2 border-2 border-dashed border-black/50 bg-white/40" />
             )}
           </>
         )}
 
         {seated.map((player, index) => {
-          const position = positions[index % positions.length] ?? { left: 50, top: 50 };
+          const position = positions[index] ?? { left: 50, top: 50 };
           return (
             <SceneSeat
               key={player.id}
@@ -292,20 +263,6 @@ export function PortalScene({ room, you }: PortalSceneProps) {
             />
           );
         })}
-
-        <div className="absolute bottom-1 left-2 z-30 border border-black bg-white/80 px-1 py-0.5 font-mono text-[6px] font-black uppercase">
-          U · {seated.length} sentados
-          {inLobby ? "" : " + comisión"}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-1 border-t-2 border-black bg-[#fffdf7] px-2 py-1">
-        <p className="font-mono text-[8px] font-bold uppercase text-stone-500">
-          Sillas en U · presidencia al frente
-        </p>
-        <p className="font-mono text-[8px] font-bold uppercase text-stone-500">
-          {inLobby ? "Todos esperando" : "La comisión ocupa la mesa"}
-        </p>
       </div>
     </section>
   );

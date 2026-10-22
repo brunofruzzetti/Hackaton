@@ -111,7 +111,7 @@ Sin credenciales, la UI muestra `WS local` y todo funciona igual.
   src/components/JuntaHeader.tsx     Marcador Bo3, llave del portal, fase y rechazos
   src/components/PlayerCredential.tsx Credencial privada + post-it del expediente
   src/components/NeighborBoard.tsx   Tablero de buzones/puertas de la asamblea
-  src/components/PortalScene.tsx     Portal 2D: sillas + mesa frontal presidente/vocal
+  src/components/PortalScene.tsx     Junta urgente: vista cenital en U + mesa frontal
   src/components/ContractFolder.tsx  Carpeta azul del contrato de obra
   src/components/PlayerDashboard.tsx Compone header, credencial, contrato y tablero
   src/components/VotingPanel.tsx     Nominación, votación pública y firma secreta
@@ -128,9 +128,9 @@ La interfaz sigue un estilo **tablón de anuncios de comunidad + neobrutalismo**
 fondo papel `#f4efe6`, bordes negros de 2–4 px, sombras sólidas sin difuminar,
 post-its amarillos, sellos verdes/rojos, carpetas azules y tipografía monoespaciada en
 actas. Los botones usan `active:translate-*` y `active:shadow-none` para dar respuesta
-táctil. El **PortalScene** es una panorámica cenital del portal: avatares pixel-art sentados
-en U, alfombra central y mesa frontal. El presidente y el vocal pasan a la mesa; el resto
-ocupa las sillas. Probado a 390 px sin scroll horizontal.
+táctil. El **PortalScene** es una panorámica cenital del portal (**Junta urgente**): avatares
+pixel-art sentados en U, mesa de café grande y mesa frontal pequeña. El presidente y el vocal
+pasan a la mesa; el resto ocupa las sillas. Probado a 390 px sin scroll horizontal.
 
 ### Función pura de arranque
 

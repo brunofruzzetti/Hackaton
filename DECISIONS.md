@@ -370,7 +370,9 @@ si son deshonestas). No tienen socket ni chat; el estado público las marca con 
 
 ### D-113 · Escena del portal y voz explícita
 Se añade `PortalScene`: panorámica cenital del portal con avatares pixel-art sentados en U,
-alfombra central y mesa frontal. El presidente siempre aparece en la mesa; cuando hay vocal,
+mesa de café grande y mesa frontal pequeña. Se elimina la alfombra y los rótulos de la
+escena; solo quedan los nombres de los personajes. El presidente siempre aparece en la mesa;
+cuando hay vocal,
 este se sienta a su lado y la comisión queda destacada. El micro no se solicita
 automáticamente: `RuinaAudio` muestra `ENTRAR EN LA VOZ` y solo entonces pide
 permiso/publica el track de LiveKit. El chat de texto sigue disponible en todo momento y en
