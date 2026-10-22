@@ -8,6 +8,7 @@ import { useGameSounds } from "./hooks/useGameSounds";
 import { useRuinaSocket } from "./hooks/useRuinaSocket";
 import { useSupabaseRoom } from "./hooks/useSupabaseRoom";
 import { codeFromUrl } from "./lib/session";
+import { BRUTAL } from "./lib/ui";
 
 export function App() {
   const game = useRuinaSocket();
@@ -20,19 +21,21 @@ export function App() {
   if (!game.room) {
     if (busy) {
       return (
-        <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-          <div className="text-center">
-            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
-            <h1 className="mt-4 text-xl font-black text-slate-900">
+        <main className="flex min-h-screen items-center justify-center bg-[#f4efe6] p-6">
+          <div className="border-[3px] border-black bg-[#fffdf7] px-6 py-8 text-center shadow-[8px_8px_0_0_#000]">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-[3px] border-black border-t-[#fef08a]" />
+            <h1 className="mt-4 text-xl font-black uppercase tracking-tight">
               {game.status === "reconnecting" ? "Volviendo a la junta…" : "Conectando…"}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">Preparando la sala y el acta de la comunidad.</p>
+            <p className="mt-1 font-mono text-[10px] uppercase text-stone-500">
+              Preparando el acta de la comunidad
+            </p>
           </div>
         </main>
       );
     }
     return (
-      <main className="min-h-screen bg-slate-100">
+      <main className="min-h-screen bg-[#f4efe6]">
         <Lobby
           room={null}
           you={null}
@@ -48,10 +51,12 @@ export function App() {
 
   if (!game.you || !game.session) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-        <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
-          <h1 className="mt-4 text-xl font-black text-slate-900">Recuperando tu asiento…</h1>
+      <main className="flex min-h-screen items-center justify-center bg-[#f4efe6] p-6">
+        <div className="border-[3px] border-black bg-[#fffdf7] px-6 py-8 text-center shadow-[8px_8px_0_0_#000]">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-[3px] border-black border-t-[#fef08a]" />
+          <h1 className="mt-4 text-xl font-black uppercase tracking-tight">
+            Recuperando tu asiento…
+          </h1>
         </div>
       </main>
     );
@@ -59,7 +64,7 @@ export function App() {
 
   if (game.room.phase === "LOBBY") {
     return (
-      <main className="min-h-screen bg-slate-100">
+      <main className="min-h-screen bg-[#f4efe6]">
         <Lobby
           room={game.room}
           you={game.you}
@@ -75,19 +80,23 @@ export function App() {
 
   if (!game.privateInfo) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-        <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
-          <h1 className="mt-4 text-xl font-black text-slate-900">Repartiendo expedientes…</h1>
-          <p className="mt-1 text-sm text-slate-500">Preparando los sobres secretos de la junta.</p>
+      <main className="flex min-h-screen items-center justify-center bg-[#f4efe6] p-6">
+        <div className="border-[3px] border-black bg-[#fffdf7] px-6 py-8 text-center shadow-[8px_8px_0_0_#000]">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-[3px] border-black border-t-[#fef08a]" />
+          <h1 className="mt-4 text-xl font-black uppercase tracking-tight">
+            Repartiendo expedientes…
+          </h1>
+          <p className="mt-1 font-mono text-[10px] uppercase text-stone-500">
+            Abriendo los sobres secretos
+          </p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-6xl px-4 pb-10 pt-4">
+    <main className="min-h-screen bg-[#f4efe6] text-stone-950">
+      <div className="mx-auto max-w-6xl px-3 pb-10 pt-3 sm:px-4">
         <PlayerDashboard
           room={game.room}
           you={game.you}
@@ -114,34 +123,34 @@ export function App() {
         </div>
 
         <footer className="mt-5 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-slate-500">
-            {game.status === "connected" ? "Conectado" : "Reconectando…"}
+          <span className="font-mono text-[10px] font-bold uppercase text-stone-500">
+            {game.status === "connected" ? "● CONECTADO" : "○ RECONECTANDO"}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={sounds.toggleSound}
-              className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-200"
+              className={`${BRUTAL.buttonSm} bg-white px-2.5 py-1.5 font-mono text-[10px] font-black uppercase`}
               title="Activar o silenciar los efectos"
             >
-              {sounds.soundEnabled ? "🔊 Sonido" : "🔇 Silencio"}
+              {sounds.soundEnabled ? "🔊 SONIDO" : "🔇 SILENCIO"}
             </button>
             {game.you.isHost && game.room.phase !== "VICTORIA" && (
               <button
                 type="button"
                 onClick={game.forceAdvance}
                 title="Emergencia: resuelve la fase actual y avanza"
-                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                className={`${BRUTAL.buttonSm} bg-[#fef08a] px-2.5 py-1.5 font-mono text-[10px] font-black uppercase`}
               >
-                Forzar siguiente fase
+                ⚠ FORZAR FASE
               </button>
             )}
             <button
               type="button"
               onClick={game.leave}
-              className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-200"
+              className={`${BRUTAL.buttonSm} bg-white px-2.5 py-1.5 font-mono text-[10px] font-black uppercase`}
             >
-              Salir
+              SALIR
             </button>
           </div>
         </footer>
@@ -158,14 +167,14 @@ function ErrorToast({ error, onClose }: { error: string | null; onClose: () => v
   return (
     <div
       role="alert"
-      className="fixed bottom-4 left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-start gap-3 rounded-2xl border border-red-200 bg-white p-3 text-sm shadow-xl"
+      className="fixed bottom-3 left-1/2 z-[60] flex w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 items-start gap-2 border-[3px] border-black bg-[#ef4444] p-2.5 text-white shadow-[6px_6px_0_0_#000]"
     >
-      <p className="flex-1 text-slate-700">{error}</p>
+      <p className="flex-1 font-mono text-xs font-bold leading-relaxed">{error}</p>
       <button
         type="button"
         onClick={onClose}
         aria-label="Cerrar aviso"
-        className="rounded-lg px-2 text-lg font-bold text-slate-400 hover:bg-slate-100"
+        className="border-2 border-black bg-white px-2 font-mono text-sm font-black text-black transition-all active:translate-x-[1px] active:translate-y-[1px]"
       >
         ×
       </button>

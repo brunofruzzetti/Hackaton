@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import type { RuinaState } from "@shared/index";
 import type { RuinaSelf, RuinaSocket } from "../hooks/useRuinaSocket";
 import type { Session } from "../lib/session";
+import { BRUTAL } from "../lib/ui";
+import { NeighborBoard } from "./NeighborBoard";
 import { RuinaAudio } from "./ruina/RuinaAudio";
 import { RuinaChat } from "./ruina/RuinaChat";
 
@@ -17,18 +19,18 @@ interface LobbyProps {
 function RealtimeBadge({ realtime }: { realtime: LobbyProps["supabaseRealtime"] }) {
   if (!realtime.configured) {
     return (
-      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+      <span className="border-2 border-black bg-white px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
         WS local
       </span>
     );
   }
   return (
     <span
-      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-        realtime.connected ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+      className={`border-2 border-black px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000] ${
+        realtime.connected ? "bg-[#22c55e] text-white" : "bg-[#fef08a]"
       }`}
     >
-      Supabase {realtime.connected ? "en vivo" : "conectando"}
+      Supabase {realtime.connected ? "● LIVE" : "○ CONECTANDO"}
     </span>
   );
 }
@@ -56,85 +58,154 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
     }
 
     return (
-      <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-4 py-10">
-        <header className="mb-8 text-center">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-amber-700">
-            Comunidad de propietarios · 3.º B
-          </p>
-          <h1 className="text-5xl font-black tracking-tight text-slate-900 sm:text-6xl">
-            Junta de Ruina
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-balance text-slate-600">
-            Una constructora ha comprado a algunos vecinos. Debatid, votad los contratos y
-            descubrid quién quiere arruinar el edificio.
-          </p>
-        </header>
-
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-xl shadow-slate-200/60 sm:p-7">
-          <h2 className="text-xl font-bold text-slate-900">Entra en la junta</h2>
-          <label className="mt-4 block text-sm font-semibold text-slate-700">
-            Tu nombre de vecino
-            <input
-              value={nombre}
-              onChange={(event) => setNombre(event.target.value)}
-              maxLength={20}
-              autoComplete="nickname"
-              placeholder="Ej. Manoli"
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-            />
-          </label>
-
-          <form onSubmit={create} className="mt-4">
-            <button
-              type="submit"
-              disabled={!nameOk || busy}
-              className="w-full rounded-xl bg-amber-600 px-4 py-3 font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Crear una junta nueva
-            </button>
-          </form>
-
-          <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            <span className="h-px flex-1 bg-slate-200" />
-            o únete con un código
-            <span className="h-px flex-1 bg-slate-200" />
+      <div className="min-h-screen bg-[#f4efe6] px-3 py-4 sm:px-5 sm:py-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-3 flex items-center justify-between border-2 border-black bg-[#fef08a] px-3 py-1.5 shadow-[3px_3px_0_0_#000]">
+            <p className="font-mono text-[10px] font-black uppercase tracking-[0.18em]">
+              TABLÓN DE ANUNCIOS · COMUNIDAD 3.º B
+            </p>
+            <span className="hidden rotate-2 border border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-black sm:block">
+              VECINOS EN GUERRA
+            </span>
           </div>
 
-          <form onSubmit={join}>
-            <label className="block text-sm font-semibold text-slate-700">
-              Código de sala
-              <input
-                value={code}
-                onChange={(event) =>
-                  setCode(event.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 4).toUpperCase())
-                }
-                maxLength={4}
-                autoCapitalize="characters"
-                autoComplete="off"
-                placeholder="ABCD"
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-center font-mono text-2xl font-black tracking-[0.4em] outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={!nameOk || !codeOk || busy}
-              className="mt-4 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-bold text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Unirme a la sala
-            </button>
-          </form>
+          <header className="relative mb-5 border-[3px] border-black bg-[#fffdf7] p-4 shadow-[7px_7px_0_0_#000] sm:p-6">
+            <span className="tape -top-3 left-8" aria-hidden="true" />
+            <span className="tape -top-3 right-10 rotate-[7deg]" aria-hidden="true" />
+            <p className={`${BRUTAL.label} text-stone-500`}>
+              JUNTA EXTRAORDINARIA DE PROPIETARIOS
+            </p>
+            <h1 className="mt-1 text-5xl font-black uppercase leading-[0.86] tracking-tighter sm:text-7xl">
+              Junta de
+              <br />
+              <span className="text-[#b91c1c]">Ruina</span>
+            </h1>
+            <p className="mt-3 max-w-2xl font-mono text-sm leading-relaxed text-stone-700 sm:text-base">
+              Una constructora ha comprado a algunos vecinos. Debatid, votad los contratos y
+              descubrid quién quiere arruinar el edificio antes de que se caiga la fachada.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="border-2 border-black bg-[#22c55e] px-2 py-1 font-mono text-[9px] font-black uppercase text-white shadow-[2px_2px_0_0_#000]">
+                5–8 vecinos
+              </span>
+              <span className="border-2 border-black bg-white px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
+                Bo3
+              </span>
+              <span className="border-2 border-black bg-[#38bdf8] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
+                Voz LiveKit + chat
+              </span>
+            </div>
+          </header>
 
-          <p className="mt-4 text-center text-xs text-slate-500">
-            Sin registro. De 5 a 8 vecinos por sala. La voz va por LiveKit y el chat siempre está
-            abierto.
-          </p>
-        </section>
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <section className={`${BRUTAL.cardLg} p-4 sm:p-5`}>
+              <div className="flex items-end justify-between gap-2 border-b-2 border-black pb-2">
+                <h2 className="text-2xl font-black uppercase tracking-tight">Entra en la junta</h2>
+                <span className="font-mono text-[9px] font-bold uppercase text-stone-500">
+                  SIN REGISTRO
+                </span>
+              </div>
 
-        <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-          <strong>Resumen:</strong> 2 comerciales encubiertos de 5 a 7 vecinos, 3 con 8. El
-          presidente propone una comisión, la sala vota y la comisión firma en secreto. Al mejor
-          de 3, gana el bando que llegue a 2 puntos.
-        </section>
+              <label className="mt-3 block font-mono text-[10px] font-bold uppercase tracking-wider">
+                Tu nombre de vecino
+                <input
+                  value={nombre}
+                  onChange={(event) => setNombre(event.target.value)}
+                  maxLength={20}
+                  autoComplete="nickname"
+                  placeholder="Ej. Manoli"
+                  className="mt-1 w-full border-2 border-black bg-white px-3 py-3 font-mono text-base font-bold outline-none transition-shadow focus:shadow-[3px_3px_0_0_#000]"
+                />
+              </label>
+
+              <form onSubmit={create} className="mt-3">
+                <button
+                  type="submit"
+                  disabled={!nameOk || busy}
+                  className={`${BRUTAL.button} w-full bg-[#fef08a] px-4 py-3 text-sm font-black uppercase tracking-wide`}
+                >
+                  📌 Crear una junta nueva
+                </button>
+              </form>
+
+              <div className="my-4 flex items-center gap-2 font-mono text-[9px] font-bold uppercase text-stone-400">
+                <span className="h-0.5 flex-1 bg-black" />
+                o únete con un código
+                <span className="h-0.5 flex-1 bg-black" />
+              </div>
+
+              <form onSubmit={join}>
+                <label className="block font-mono text-[10px] font-bold uppercase tracking-wider">
+                  Código de sala
+                  <input
+                    value={code}
+                    onChange={(event) =>
+                      setCode(
+                        event.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 4).toUpperCase(),
+                      )
+                    }
+                    maxLength={4}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    placeholder="ABCD"
+                    className="mt-1 w-full border-2 border-black bg-white px-3 py-2.5 text-center font-mono text-2xl font-black tracking-[0.35em] outline-none transition-shadow focus:shadow-[3px_3px_0_0_#000]"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={!nameOk || !codeOk || busy}
+                  className={`${BRUTAL.button} mt-3 w-full bg-[#38bdf8] px-4 py-3 text-sm font-black uppercase tracking-wide`}
+                >
+                  🚪 Unirme a la sala
+                </button>
+              </form>
+
+              <p className="mt-3 font-mono text-[10px] leading-relaxed text-stone-500">
+                Mínimo 5, máximo 8. La voz va por LiveKit; el chat siempre está disponible.
+              </p>
+            </section>
+
+            <aside className="space-y-4">
+              <section className="relative rotate-[0.6deg] border-2 border-black bg-[#fef08a] p-4 shadow-[5px_5px_0_0_#000]">
+                <span className="postit-pin" aria-hidden="true" />
+                <h2 className="text-xl font-black uppercase leading-none tracking-tight">
+                  Cartel de normas
+                </h2>
+                <ol className="mt-3 space-y-2 font-mono text-xs leading-snug">
+                  <li>
+                    <strong>01.</strong> 2 comerciales infiltrados (3 si sois 8).
+                  </li>
+                  <li>
+                    <strong>02.</strong> Cada vecino recibe un chisme sobre el de su derecha.
+                  </li>
+                  <li>
+                    <strong>03.</strong> El presidente propone comisión; la sala vota en público.
+                  </li>
+                  <li>
+                    <strong>04.</strong> La comisión firma a solas. Un sabotaje huele a punto rojo.
+                  </li>
+                  <li>
+                    <strong>05.</strong> Tres rechazos y la constructora se lleva el punto.
+                  </li>
+                </ol>
+              </section>
+
+              <section className="border-2 border-black bg-white p-3 shadow-[4px_4px_0_0_#000]">
+                <p className={`${BRUTAL.label} text-stone-500`}>AVISO DEL ADMINISTRADOR</p>
+                <p className="mt-1 font-mono text-xs leading-relaxed">
+                  “No enseñéis la credencial. Aquí el que dice que todo está limpio suele tener
+                  una cláusula trampa en el bolsillo.”
+                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <RealtimeBadge realtime={supabaseRealtime} />
+                  <span className="text-2xl" aria-hidden="true">
+                    🕵️
+                  </span>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </div>
       </div>
     );
   }
@@ -156,109 +227,107 @@ export function Lobby({ room, you, session, socket, initialCode, supabaseRealtim
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-4xl px-4 py-6 sm:py-10">
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Junta de Ruina</p>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">
-            Sala <span className="font-mono text-amber-700">{room.code}</span>
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <RealtimeBadge realtime={supabaseRealtime} />
-          <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white">Lobby</span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#f4efe6] px-3 py-4 sm:px-5 sm:py-6">
+      <div className="mx-auto max-w-5xl">
+        <header className="mb-4 flex flex-wrap items-start justify-between gap-3 border-[3px] border-black bg-[#fffdf7] p-3 shadow-[6px_6px_0_0_#000]">
+          <div>
+            <p className={`${BRUTAL.label} text-stone-500`}>JUNTA DE RUINA · TABLÓN DE ANUNCIOS</p>
+            <h1 className="text-3xl font-black uppercase leading-none tracking-tight sm:text-4xl">
+              Sala <span className="text-[#b91c1c]">{room.code}</span>
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <RealtimeBadge realtime={supabaseRealtime} />
+            <span className="border-2 border-black bg-[#fef08a] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
+              LOBBY
+            </span>
+          </div>
+        </header>
 
-      <section className="mb-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Código para invitar</p>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <span className="font-mono text-4xl font-black tracking-[0.3em] text-slate-900">{room.code}</span>
-          <div className="flex min-w-0 flex-1 gap-2">
-            <input
-              readOnly
-              value={shareLink}
-              className="min-w-0 flex-1 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs text-slate-600"
-            />
+        <section className="relative mb-4 border-2 border-black bg-[#38bdf8] p-3 shadow-[5px_5px_0_0_#000]">
+          <span className="tape -top-2 left-6" aria-hidden="true" />
+          <p className={`${BRUTAL.label} text-stone-800`}>CÓDIGO PARA INVITAR</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <span className="border-2 border-black bg-white px-2 py-1 font-mono text-4xl font-black leading-none tracking-[0.2em] shadow-[3px_3px_0_0_#000]">
+              {room.code}
+            </span>
+            <div className="flex min-w-0 flex-1 gap-1.5">
+              <input
+                readOnly
+                value={shareLink}
+                className="min-w-0 flex-1 border-2 border-black bg-white px-2 py-1.5 font-mono text-[10px] text-stone-600"
+              />
+              <button
+                type="button"
+                onClick={() => void copy()}
+                className={`${BRUTAL.buttonSm} bg-[#fef08a] px-2 py-1.5 font-mono text-[10px] font-black uppercase`}
+              >
+                {copied ? "COPIADO" : "COPIAR"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div className="mb-4">
+          <NeighborBoard room={room} you={you} />
+        </div>
+
+        <section className={`${BRUTAL.cardLg} p-3`}>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className={`${BRUTAL.label} text-stone-500`}>ORDEN DEL DÍA</p>
+              <h2 className="text-xl font-black uppercase leading-none tracking-tight">
+                {room.players.length < 5 ? "Faltan vecinos" : "La junta puede empezar"}
+              </h2>
+            </div>
+            <span className="rotate-2 border-2 border-black bg-[#fef08a] px-2 py-1 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
+              {room.players.length}/8
+            </span>
+          </div>
+          <p className="mt-1 font-mono text-xs text-stone-600">
+            {room.players.length < 5
+              ? `Faltan ${5 - room.players.length} vecinos para alcanzar el mínimo de 5.`
+              : "El anfitrión decide cuándo se abre la sesión. Los demás podéis ir calentando la voz."}
+          </p>
+          {isHost ? (
             <button
               type="button"
-              onClick={() => void copy()}
-              className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-50"
+              disabled={!canStart}
+              onClick={socket.startGame}
+              className={`${BRUTAL.button} mt-3 w-full bg-[#22c55e] px-4 py-3 text-base font-black uppercase tracking-wide text-white`}
             >
-              {copied ? "Copiado" : "Copiar"}
+              🔔 Empezar la junta
             </button>
-          </div>
-        </div>
-      </section>
+          ) : (
+            <p className="mt-3 border-2 border-dashed border-black bg-[#fef08a] px-3 py-2 text-center font-mono text-xs font-bold uppercase">
+              Esperando al anfitrión…
+            </p>
+          )}
+        </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-slate-900">Vecinos ({room.players.length}/8)</h2>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">
-            Mín. 5
-          </span>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <RuinaAudio session={session} status={socket.status} />
+          <RuinaChat
+            room={room}
+            you={you}
+            connected={socket.status === "connected"}
+            onSend={socket.sendChat}
+          />
         </div>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {room.players.map((player) => (
-            <li
-              key={player.id}
-              className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
-                player.connected ? "border-slate-200 bg-slate-50" : "border-red-100 bg-red-50 opacity-70"
-              }`}
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-black text-amber-800">
-                {player.piso.slice(0, 1)}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-900">
-                  {player.nombre}
-                  {player.isHost && <span className="ml-1 text-amber-700">· anfitrión</span>}
-                  {player.id === you.playerId && <span className="ml-1 text-xs text-slate-400">(tú)</span>}
-                </p>
-                <p className="text-xs text-slate-500">
-                  Piso {player.piso}
-                  {!player.connected && " · desconectado"}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-slate-500">
-          {room.players.length < 5
-            ? `Faltan ${5 - room.players.length} vecinos para poder empezar.`
-            : "Ya podéis empezar. El anfitrión decide cuándo."}
-        </p>
-        {isHost ? (
+
+        <footer className="mt-4 flex items-center justify-between">
+          <span className="font-mono text-[10px] font-bold uppercase text-stone-500">
+            {socket.status === "connected" ? "● CONECTADO" : "○ RECONECTANDO"}
+          </span>
           <button
             type="button"
-            disabled={!canStart}
-            onClick={socket.startGame}
-            className="mt-3 w-full rounded-xl bg-amber-600 px-4 py-3 font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={socket.leave}
+            className={`${BRUTAL.buttonSm} bg-white px-3 py-1.5 font-mono text-[10px] font-black uppercase`}
           >
-            Empezar la junta
+            Salir
           </button>
-        ) : (
-          <p className="mt-3 text-center text-sm text-slate-500">Esperando al anfitrión…</p>
-        )}
-      </section>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <RuinaAudio session={session} status={socket.status} />
-        <RuinaChat room={room} you={you} connected={socket.status === "connected"} onSend={socket.sendChat} />
+        </footer>
       </div>
-
-      <footer className="mt-4 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-500">
-          {socket.status === "connected" ? "Conectado" : "Reconectando…"}
-        </span>
-        <button
-          type="button"
-          onClick={socket.leave}
-          className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100"
-        >
-          Salir
-        </button>
-      </footer>
     </div>
   );
 }

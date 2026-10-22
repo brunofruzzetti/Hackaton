@@ -103,14 +103,27 @@ Sin credenciales, la UI muestra `WS local` y todo funciona igual.
   src/livekit.ts      Tokens JWT de LiveKit
   src/index.ts        Fastify: health, config, token y arranque
 /client
-  src/components/Lobby.tsx           Crear/unirse y lista de vecinos
-  src/components/PlayerDashboard.tsx Marcador Bo3 + expediente privado post-it
+  src/components/Lobby.tsx           Crear/unirse, tablón y lista de vecinos
+  src/components/JuntaHeader.tsx     Marcador Bo3, llave del portal, fase y rechazos
+  src/components/PlayerCredential.tsx Credencial privada + post-it del expediente
+  src/components/NeighborBoard.tsx   Tablero de buzones/puertas de la asamblea
+  src/components/ContractFolder.tsx  Carpeta azul del contrato de obra
+  src/components/PlayerDashboard.tsx Compone header, credencial, contrato y tablero
   src/components/VotingPanel.tsx     Nominación, votación pública y firma secreta
-  src/components/ResolutionModal.tsx Sobre animado y resultado de ronda
+  src/components/ResolutionModal.tsx Sobre animado, sello y resultado de ronda
+  src/lib/ui.ts                      Constantes de estilo neobrutalista
   src/hooks/useRuinaSocket.ts        Conexión WS, reconexión y acciones
   src/hooks/useSupabaseRoom.ts       Suscripción Realtime opcional
   src/hooks/useLiveKit.ts            Audio de sala
 ```
+
+### Sistema visual
+
+La interfaz sigue un estilo **tablón de anuncios de comunidad + neobrutalismo**:
+fondo papel `#f4efe6`, bordes negros de 2–4 px, sombras sólidas sin difuminar,
+post-its amarillos, sellos verdes/rojos, carpetas azules y tipografía monoespaciada en
+actas. Los botones usan `active:translate-*` y `active:shadow-none` para dar respuesta
+táctil. Probado a 390 px sin scroll horizontal.
 
 ### Función pura de arranque
 

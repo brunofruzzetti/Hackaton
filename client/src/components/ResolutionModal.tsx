@@ -1,9 +1,19 @@
 import { useEffect, useState } from "react";
 import type { RuinaState } from "@shared/index";
+import { BRUTAL } from "../lib/ui";
 
 interface ResolutionModalProps {
   room: RuinaState;
   onLeave: () => void;
+}
+
+function stampText(room: RuinaState): string {
+  if (room.phase === "VICTORIA") {
+    return room.winner === "HONESTOS" ? "VICTORIA VECINAL" : "VICTORIA COMERCIAL";
+  }
+  if (room.lastResult?.motivo === "TRES_RECHAZOS") return "JUNTA BLOQUEADA";
+  if (room.lastResult?.saboteada) return "¡SABOTAJE DETECTADO!";
+  return "OBRA APROBADA SIN TRAMPA";
 }
 
 export function ResolutionModal({ room, onLeave }: ResolutionModalProps) {
@@ -22,57 +32,72 @@ export function ResolutionModal({ room, onLeave }: ResolutionModalProps) {
     room.phaseEndsAt === null ? null : Math.max(0, Math.ceil((room.phaseEndsAt - now) / 1000));
   const victory = room.phase === "VICTORIA";
   const honestWin = (victory ? room.winner : result?.ganador) === "HONESTOS";
+  const blocked = result?.motivo === "TRES_RECHAZOS";
+  const sabotaged = Boolean(result?.saboteada);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 backdrop-blur-[2px] sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-label={victory ? "Resultado final" : "Resultado de la ronda"}
     >
-      <div className="w-full max-w-md animate-[modal-in_.25s_ease-out] rounded-3xl border border-white/20 bg-white p-5 shadow-2xl sm:p-7">
-        <div className="text-center">
-          <div className="envelope mx-auto" aria-hidden="true">
-            <div className="envelope-back" />
-            <div className="envelope-letter">
-              <span className="text-2xl">{victory ? (honestWin ? "🏆" : "💼") : result?.saboteada ? "🧾" : "✅"}</span>
+      <div className="relative w-full max-w-md border-[4px] border-black bg-[#fffdf7] p-4 shadow-[10px_10px_0_0_#000] sm:p-6">
+        <div className="absolute -top-3 left-6 rotate-[-4deg] border-2 border-black bg-[#fef08a] px-2 py-0.5 font-mono text-[9px] font-black uppercase shadow-[2px_2px_0_0_#000]">
+          ACTA DE RESOLUCIÓN · RONDA {room.round}
+        </div>
+
+        <div className="mt-2 text-center">
+          <div className="relative mx-auto h-[142px] w-[200px]">
+            <div className="envelope mx-auto" aria-hidden="true">
+              <div className="envelope-back" />
+              <div className="envelope-letter">
+                <span className="text-3xl">{victory ? (honestWin ? "🏆" : "💼") : sabotaged ? "🧾" : "✅"}</span>
+              </div>
+              <div className="envelope-front" />
+              <div className="envelope-flap" />
             </div>
-            <div className="envelope-front" />
-            <div className="envelope-flap" />
+            <div
+              className={`stamp-in absolute -right-5 top-5 rotate-[-8deg] border-[3px] border-black px-2 py-1 font-black uppercase leading-none shadow-[3px_3px_0_0_#000] ${
+                honestWin ? "bg-[#22c55e] text-white" : "bg-[#ef4444] text-white"
+              }`}
+            >
+              <span className="block max-w-[150px] text-center text-xs sm:text-sm">{stampText(room)}</span>
+              <span className="mt-0.5 block text-center font-mono text-[7px] tracking-wider opacity-80">
+                JUNTA DE RUINA · 3.º B
+              </span>
+            </div>
           </div>
 
-          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.25em] text-amber-700">
-            {victory ? "Acta final de la comunidad" : "Sobre del contrato"}
-          </p>
-          <h2 className={`mt-1 text-2xl font-black leading-tight ${honestWin ? "text-emerald-800" : "text-red-800"}`}>
+          <h2 className="mt-4 text-2xl font-black uppercase leading-none tracking-tight">
             {victory
               ? honestWin
                 ? "Ganan los vecinos honestos"
-                : "Ganan los comerciales encubiertos"
-              : result?.motivo === "TRES_RECHAZOS"
-                ? "Tres comisiones rechazadas"
-                : result?.saboteada
-                  ? "Contrato inflado: había sabotaje"
-                  : "Obra limpia: contrato honesto"}
+                : "Ganan los comerciales"
+              : blocked
+                ? "La junta se ha bloqueado"
+                : sabotaged
+                  ? "Contrato inflado"
+                  : "Contrato limpio"}
           </h2>
 
           {!victory && (
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              {result?.motivo === "TRES_RECHAZOS"
-                ? "La constructora aprovecha el bloqueo de la junta. Punto para los deshonestos."
-                : result?.saboteada
-                  ? `${result.sabotajes} sabotaje${result.sabotajes === 1 ? "" : "s"} dentro de la comisión. Punto para los deshonestos.`
-                  : "Nadie coló un sabotaje. Punto para los honestos."}
+            <p className="mx-auto mt-2 max-w-sm border-2 border-dashed border-black bg-white px-2 py-2 font-mono text-xs leading-relaxed">
+              {blocked
+                ? "Tres comisiones rechazadas seguidas. La constructora aprovecha el bloqueo: punto para los deshonestos."
+                : sabotaged
+                  ? `${result?.sabotajes ?? 0} sabotaje${result?.sabotajes === 1 ? "" : "s"} dentro de la comisión. Punto para los deshonestos.`
+                  : "Nadie coló una cláusula trampa. Punto para los honestos."}
             </p>
           )}
 
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
-              Honestos {room.points.honestos}
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <span className="border-2 border-black bg-[#22c55e] px-2 py-1 font-mono text-[10px] font-black uppercase text-white shadow-[2px_2px_0_0_#000]">
+              HONESTOS {room.points.honestos}
             </span>
-            <span className="text-xs font-bold text-slate-400">BO3</span>
-            <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800">
-              Comerciales {room.points.deshonestos}
+            <span className="font-mono text-[10px] font-black">BO3</span>
+            <span className="border-2 border-black bg-[#ef4444] px-2 py-1 font-mono text-[10px] font-black uppercase text-white shadow-[2px_2px_0_0_#000]">
+              COMERCIALES {room.points.deshonestos}
             </span>
           </div>
 
@@ -80,12 +105,12 @@ export function ResolutionModal({ room, onLeave }: ResolutionModalProps) {
             <button
               type="button"
               onClick={onLeave}
-              className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-800"
+              className={`${BRUTAL.button} mt-4 w-full bg-black px-4 py-3 text-sm font-black uppercase tracking-wide text-[#fef08a]`}
             >
-              Salir de la junta
+              CERRAR EL ACTA Y SALIR
             </button>
           ) : (
-            <p className="mt-4 text-xs font-semibold text-slate-500">
+            <p className="mt-3 font-mono text-[10px] font-bold uppercase text-stone-500">
               {countdown !== null && countdown > 0
                 ? `Siguiente ronda en ${countdown}s…`
                 : "Preparando la siguiente ronda…"}

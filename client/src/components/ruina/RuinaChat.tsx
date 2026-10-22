@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { RuinaState } from "@shared/index";
 import type { RuinaSelf } from "../../hooks/useRuinaSocket";
+import { BRUTAL } from "../../lib/ui";
 
 interface RuinaChatProps {
   room: RuinaState;
@@ -27,65 +28,73 @@ export function RuinaChat({ room, you, connected, onSend }: RuinaChatProps) {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-black uppercase tracking-wider text-slate-500">Chat de la junta</h2>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+    <section className={`${BRUTAL.card} overflow-hidden`}>
+      <div className="flex items-center justify-between gap-2 border-b-2 border-black bg-[#fef08a] px-2.5 py-1.5">
+        <h2 className="font-mono text-[10px] font-black uppercase tracking-[0.16em]">
+          🗒 ACTA / CHAT DE LA JUNTA
+        </h2>
+        <span className="border border-black bg-white px-1.5 py-0.5 font-mono text-[9px] font-black">
           {room.chat.length}
         </span>
       </div>
-      <div
-        ref={listRef}
-        aria-live="polite"
-        className="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2.5"
-      >
-        {room.chat.length === 0 ? (
-          <p className="text-xs text-slate-500">
-            Aquí aparecerán las acusaciones, las excusas y los pactos.
-          </p>
-        ) : (
-          room.chat.map((message) => (
-            <article
-              key={message.id}
-              className={`rounded-lg px-2 py-1.5 text-sm ${
-                message.playerId === you.playerId ? "bg-amber-100/80" : "bg-white"
-              }`}
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <strong className="text-xs text-slate-700">{message.nombre}</strong>
-                <time
-                  className="text-[10px] text-slate-400"
-                  dateTime={new Date(message.at).toISOString()}
-                >
-                  {new Date(message.at).toLocaleTimeString("es-ES", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </time>
-              </div>
-              <p className="mt-0.5 break-words text-slate-800">{message.texto}</p>
-            </article>
-          ))
-        )}
-      </div>
-      <form onSubmit={submit} className="mt-2 flex gap-2">
-        <input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          maxLength={280}
-          placeholder={connected ? "Escribe una acusación…" : "Sin conexión…"}
-          disabled={!connected}
-          autoComplete="off"
-          className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-slate-100"
-        />
-        <button
-          type="submit"
-          disabled={!connected || !text.trim()}
-          className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold text-white hover:bg-slate-900 disabled:opacity-40"
+      <div className="p-2.5">
+        <div
+          ref={listRef}
+          aria-live="polite"
+          className="flex max-h-80 flex-col gap-1.5 overflow-y-auto border-2 border-black bg-[#f4efe6] p-1.5"
         >
-          Enviar
-        </button>
-      </form>
+          {room.chat.length === 0 ? (
+            <p className="px-1 py-2 font-mono text-[10px] leading-relaxed text-stone-500">
+              Aquí aparecerán las acusaciones, las excusas y los pactos bajo cuerda.
+            </p>
+          ) : (
+            room.chat.map((message) => (
+              <article
+                key={message.id}
+                className={`border-2 border-black px-1.5 py-1 ${
+                  message.playerId === you.playerId ? "bg-[#fef08a]" : "bg-white"
+                }`}
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <strong className="font-mono text-[9px] font-black uppercase">
+                    {message.nombre}
+                  </strong>
+                  <time
+                    className="font-mono text-[8px] text-stone-400"
+                    dateTime={new Date(message.at).toISOString()}
+                  >
+                    {new Date(message.at).toLocaleTimeString("es-ES", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </time>
+                </div>
+                <p className="mt-0.5 break-words font-mono text-[11px] leading-snug">
+                  {message.texto}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
+        <form onSubmit={submit} className="mt-2 flex gap-1.5">
+          <input
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            maxLength={280}
+            placeholder={connected ? "Escribe una acusación…" : "Sin conexión…"}
+            disabled={!connected}
+            autoComplete="off"
+            className="min-w-0 flex-1 border-2 border-black bg-white px-2 py-2 font-mono text-xs outline-none transition-shadow focus:shadow-[2px_2px_0_0_#000] disabled:bg-stone-100"
+          />
+          <button
+            type="submit"
+            disabled={!connected || !text.trim()}
+            className={`${BRUTAL.buttonSm} bg-black px-2.5 py-2 font-mono text-[10px] font-black uppercase text-white`}
+          >
+            ENVIAR
+          </button>
+        </form>
+      </div>
     </section>
   );
 }

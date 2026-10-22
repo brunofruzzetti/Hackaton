@@ -37,11 +37,15 @@ fueron eliminados.
 - `server/src/supabaseMirror.ts`: espejo best-effort a Supabase (`salas`/`jugadores`).
 - `server/src/livekit.ts`: JWT de LiveKit.
 - `server/src/index.ts`: Fastify (health, config, token, reloj de timers y WS).
-- `client/src/components/Lobby.tsx`: crear/unirse, código y lista de conectados.
-- `client/src/components/PlayerDashboard.tsx`: marcador Bo3, contrato, expediente privado
-  post-it y lista de vecinos.
+- `client/src/components/Lobby.tsx`: crear/unirse, tablón, código y lista de conectados.
+- `client/src/components/JuntaHeader.tsx`: sellos Bo3, llave del portal, fase y calaveras.
+- `client/src/components/PlayerCredential.tsx`: credencial privada plegable y post-it.
+- `client/src/components/NeighborBoard.tsx`: tablero de buzones 2/4 columnas.
+- `client/src/components/ContractFolder.tsx`: carpeta azul del contrato de obra.
+- `client/src/components/PlayerDashboard.tsx`: compone header, credencial, contrato y tablero.
 - `client/src/components/VotingPanel.tsx`: nominación, votación pública y firma secreta.
-- `client/src/components/ResolutionModal.tsx`: sobre animado y resultado de ronda/victoria.
+- `client/src/components/ResolutionModal.tsx`: sobre animado, sello y resultado/victoria.
+- `client/src/lib/ui.ts`: constantes de estilo neobrutalista y etiquetas de fase.
 - `client/src/hooks/useRuinaSocket.ts`: WS, reconexión y acciones.
 - `client/src/hooks/useSupabaseRoom.ts`: suscripción Realtime opcional.
 - `client/src/hooks/useLiveKit.ts`: audio de sala.
@@ -90,7 +94,10 @@ fueron eliminados.
   avisa al cliente.
 - Sonidos con Web Audio API en `client/src/lib/sfx.ts` y `useGameSounds`; sin assets
   externos. Mantener un toggle de silencio.
-- Mobile-first: botones grandes, una columna, Tailwind, sin hover como única affordance.
+- Mobile-first: 390 px primero, botones grandes, Tailwind, sin hover como única affordance.
+- Estilo visual: tablón de vecinos + neobrutalismo (papel `#f4efe6`, bordes negros, sombras
+  sólidas, post-its, sellos y carpetas), centralizado en `client/src/lib/ui.ts` y
+  `styles.css`.
 - Imports compartidos con alias `@shared/...` (Vite y tsconfig).
 - Supabase RLS abierta es **solo para desarrollo**. `salas`/`jugadores` son públicos;
   equipos y secretos viven en `expedientes`, sin políticas para `anon`. No añadir

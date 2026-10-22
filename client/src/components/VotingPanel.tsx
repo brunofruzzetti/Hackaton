@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { RuinaPrivateInfo, RuinaState } from "@shared/index";
 import type { RuinaSelf, RuinaSocket } from "../hooks/useRuinaSocket";
+import { BRUTAL } from "../lib/ui";
 
 interface VotingPanelProps {
   room: RuinaState;
@@ -14,36 +15,58 @@ function secondsLeft(endsAt: number | null, now: number): number | null {
   return Math.max(0, Math.ceil((endsAt - now) / 1000));
 }
 
+function TimerBadge({ countdown }: { countdown: number | null }) {
+  if (countdown === null) return null;
+  return (
+    <span
+      className={`border-2 border-black px-2 py-1 font-mono text-xs font-black shadow-[2px_2px_0_0_#000] ${
+        countdown <= 10 ? "bg-[#ef4444] text-white" : "bg-white"
+      }`}
+    >
+      ⏱ {countdown}s
+    </span>
+  );
+}
+
 function VoteResult({ room }: { room: RuinaState }) {
   if (!room.voteResult) return null;
   const names = new Map(room.players.map((player) => [player.id, player.nombre]));
   return (
     <div
-      className={`mt-3 rounded-xl border p-3 ${
-        room.voteResult.aprobada ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"
+      className={`mt-3 border-2 border-black shadow-[3px_3px_0_0_#000] ${
+        room.voteResult.aprobada ? "bg-[#dcfce7]" : "bg-[#fee2e2]"
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className={`text-sm font-black ${room.voteResult.aprobada ? "text-emerald-800" : "text-red-800"}`}>
-          {room.voteResult.aprobada ? "Comisión aprobada" : "Comisión rechazada"}
+      <div className="flex items-center justify-between gap-2 border-b-2 border-black bg-white px-2 py-1">
+        <p className="font-mono text-[10px] font-black uppercase tracking-wider">
+          ACTA DE VOTACIÓN
         </p>
-        <span className="text-xs font-bold text-slate-500">
-          {room.voteResult.si} sí · {room.voteResult.no} no
+        <span
+          className={`border border-black px-1.5 py-0.5 font-mono text-[9px] font-black uppercase ${
+            room.voteResult.aprobada ? "bg-[#22c55e] text-white" : "bg-[#ef4444] text-white"
+          }`}
+        >
+          {room.voteResult.aprobada ? "APROBADA" : "RECHAZADA"}
         </span>
       </div>
-      <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-        {Object.entries(room.voteResult.votos).map(([playerId, approve]) => (
-          <li
-            key={playerId}
-            className="flex items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 text-xs"
-          >
-            <span className="truncate text-slate-700">{names.get(playerId) ?? "Vecino"}</span>
-            <strong className={approve ? "text-emerald-700" : "text-red-700"}>
-              {approve ? "APROBAR" : "RECHAZAR"}
-            </strong>
-          </li>
-        ))}
-      </ul>
+      <div className="px-2 py-1.5">
+        <p className="font-mono text-[10px] font-bold">
+          {room.voteResult.si} A FAVOR · {room.voteResult.no} EN CONTRA
+        </p>
+        <ul className="mt-1 grid gap-1 sm:grid-cols-2">
+          {Object.entries(room.voteResult.votos).map(([playerId, approve]) => (
+            <li
+              key={playerId}
+              className="flex items-center justify-between gap-2 border border-black bg-white/70 px-1.5 py-0.5 font-mono text-[10px]"
+            >
+              <span className="truncate">{names.get(playerId) ?? "VECINO"}</span>
+              <strong className={approve ? "text-emerald-700" : "text-red-700"}>
+                {approve ? "APROBAR" : "RECHAZAR"}
+              </strong>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -83,195 +106,230 @@ export function VotingPanel({ room, you, privateInfo, socket }: VotingPanelProps
 
   if (showingCommission) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-black text-slate-900">Comisión de obras</h2>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">
-            {room.phase === "VOTACION_COMISION" && countdown !== null
-              ? `${countdown}s`
-              : room.voteResult?.aprobada
-                ? "Aprobada"
-                : "Rechazada"}
-          </span>
+      <section className={`${BRUTAL.cardLg} overflow-hidden`}>
+        <div className="flex items-center justify-between gap-2 border-b-[3px] border-black bg-[#fef08a] px-3 py-2">
+          <div>
+            <p className={`${BRUTAL.label} text-stone-600`}>COMISIÓN DE OBRAS</p>
+            <h2 className="text-xl font-black uppercase leading-none tracking-tight">
+              {room.phase === "FIRMA_CONTRATO" ? "Firma del contrato" : "Votación pública"}
+            </h2>
+          </div>
+          <TimerBadge countdown={countdown} />
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-amber-50 p-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">Presidente</p>
-            <p className="truncate font-bold text-slate-900">{president?.nombre ?? "—"}</p>
+        <div className="p-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="border-2 border-black bg-[#fef08a] p-2 shadow-[2px_2px_0_0_#000]">
+              <p className={`${BRUTAL.label} text-stone-600`}>🔑 PRESIDENTE</p>
+              <p className="truncate text-sm font-black uppercase">{president?.nombre ?? "—"}</p>
+            </div>
+            <div className="border-2 border-black bg-[#38bdf8] p-2 shadow-[2px_2px_0_0_#000]">
+              <p className={`${BRUTAL.label} text-stone-800`}>🪪 VOCAL</p>
+              <p className="truncate text-sm font-black uppercase">{vocal?.nombre ?? "—"}</p>
+            </div>
           </div>
-          <div className="rounded-xl bg-sky-50 p-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-sky-700">Vocal</p>
-            <p className="truncate font-bold text-slate-900">{vocal?.nombre ?? "—"}</p>
-          </div>
-        </div>
 
-        {room.phase === "VOTACION_COMISION" && (
-          <>
-            <p className="mt-3 text-xs text-slate-500">
-              Votación pública y simultánea. Han votado {room.votedIds.length}/{room.players.length}.
-              Los votos se revelan al cerrar.
-            </p>
-            {!alreadyVoted ? (
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => socket.vote(true)}
-                  className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700"
-                >
-                  APROBAR COMISIÓN
-                </button>
-                <button
-                  type="button"
-                  onClick={() => socket.vote(false)}
-                  className="rounded-xl bg-red-600 px-4 py-3 font-black text-white transition hover:bg-red-700"
-                >
-                  RECHAZAR COMISIÓN
-                </button>
-              </div>
-            ) : (
-              <p className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-semibold text-slate-500">
-                Voto emitido. Esperando al resto… ({room.votedIds.length}/{room.players.length})
+          {room.phase === "VOTACION_COMISION" && (
+            <>
+              <p className="mt-3 border-2 border-dashed border-black bg-white px-2 py-1.5 font-mono text-[10px] leading-relaxed">
+                VOTACIÓN PÚBLICA Y SIMULTÁNEA. Han votado{" "}
+                <strong>
+                  {room.votedIds.length}/{room.players.length}
+                </strong>
+                . Los votos se revelan al cerrar. Empate = rechazo.
               </p>
-            )}
-          </>
-        )}
-
-        <VoteResult room={room} />
-
-        {room.phase === "FIRMA_CONTRATO" && (
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-black text-slate-900">Firma secreta</h3>
-              <span className="text-xs font-bold text-slate-500">
-                {countdown !== null ? `${countdown}s` : "Firma"}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">
-              Solo el presidente y el vocal firman. Los honestos únicamente pueden firmar limpio.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              {[president, vocal].map((player) =>
-                player ? (
-                  <span
-                    key={player.id}
-                    className={`rounded-full px-2 py-1 font-bold ${
-                      room.signedIds.includes(player.id)
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {player.nombre}: {room.signedIds.includes(player.id) ? "firmó" : "pendiente"}
-                  </span>
-                ) : null,
-              )}
-            </div>
-
-            {inCommission && !alreadySigned ? (
-              <div className="mt-3">
-                {otherHasSigned && otherCommissioner && (
-                  <p className="mb-2 rounded-lg bg-amber-50 px-2.5 py-2 text-center text-xs font-semibold text-amber-800">
-                    El {otherRole} {otherCommissioner.nombre} ya ha firmado. Falta tu firma.
-                  </p>
-                )}
-                <div className="grid gap-2 sm:grid-cols-2">
+              {!alreadyVoted ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => socket.sign("LIMPIO")}
-                    className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700"
+                    onClick={() => socket.vote(true)}
+                    className={`${BRUTAL.button} flex min-h-[76px] items-center justify-center gap-2 bg-[#22c55e] px-3 py-3 text-sm font-black uppercase leading-tight text-white`}
                   >
-                    FIRMAR CONTRATO LIMPIO
+                    ✅ APROBAR COMISIÓN
                   </button>
-                  {isDishonest && (
-                    <button
-                      type="button"
-                      onClick={() => socket.sign("SABOTAJE")}
-                      className="rounded-xl bg-red-600 px-4 py-3 font-black text-white transition hover:bg-red-700"
-                    >
-                      COLAR SABOTAJE
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => socket.vote(false)}
+                    className={`${BRUTAL.button} flex min-h-[76px] items-center justify-center gap-2 bg-[#ef4444] px-3 py-3 text-sm font-black uppercase leading-tight text-white`}
+                  >
+                    ❌ DESCONFIAR / RECHAZAR
+                  </button>
+                </div>
+              ) : (
+                <div
+                  aria-live="polite"
+                  className="mt-3 border-2 border-black bg-stone-100 px-3 py-3 text-center font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_#000]"
+                >
+                  VOTO EMITIDO · ESPERANDO AL RESTO ({room.votedIds.length}/{room.players.length})
+                </div>
+              )}
+            </>
+          )}
+
+          <VoteResult room={room} />
+
+          {room.phase === "FIRMA_CONTRATO" && (
+            <div className="mt-4 border-2 border-black shadow-[3px_3px_0_0_#000]">
+              <div className="flex items-center justify-between gap-2 border-b-2 border-black bg-[#38bdf8] px-2 py-1">
+                <p className="font-mono text-[10px] font-black uppercase tracking-wider">
+                  EXPEDIENTE CONFIDENCIAL · FIRMA A SOLAS
+                </p>
+                <span className="rotate-2 border border-black bg-white px-1 py-0.5 font-mono text-[8px] font-black">
+                  NO REVELAR
+                </span>
+              </div>
+              <div className="bg-[#fffdf7] p-2.5">
+                <p className="font-mono text-[10px] leading-relaxed text-stone-600">
+                  Solo firman el presidente y el vocal. Un honesto solo puede firmar limpio; un
+                  comercial puede colar una cláusula trampa.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[president, vocal].map((player) =>
+                    player ? (
+                      <span
+                        key={player.id}
+                        className={`border-2 border-black px-1.5 py-0.5 font-mono text-[9px] font-black uppercase ${
+                          room.signedIds.includes(player.id)
+                            ? "bg-[#22c55e] text-white"
+                            : "bg-white text-stone-500"
+                        }`}
+                      >
+                        {player.nombre}:{" "}
+                        {room.signedIds.includes(player.id) ? "FIRMÓ" : "PENDIENTE"}
+                      </span>
+                    ) : null,
                   )}
                 </div>
+
+                {inCommission && !alreadySigned ? (
+                  <div className="mt-3">
+                    {otherHasSigned && otherCommissioner && (
+                      <p className="mb-2 border-2 border-black bg-[#fef08a] px-2 py-1.5 text-center font-mono text-[10px] font-bold uppercase">
+                        El {otherRole} {otherCommissioner.nombre} ya firmó. Falta tu firma.
+                      </p>
+                    )}
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => socket.sign("LIMPIO")}
+                        className={`${BRUTAL.button} min-h-[68px] bg-[#22c55e] px-3 py-2 text-sm font-black uppercase text-white`}
+                      >
+                        ✍️ FIRMA LIMPIA
+                      </button>
+                      {isDishonest && (
+                        <button
+                          type="button"
+                          onClick={() => socket.sign("SABOTAJE")}
+                          className={`${BRUTAL.button} min-h-[68px] bg-[#ef4444] px-3 py-2 text-sm font-black uppercase leading-tight text-white`}
+                        >
+                          😈 METER CLÁUSULA TRAMPA
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : inCommission ? (
+                  <div
+                    aria-live="polite"
+                    className="mt-3 flex items-center justify-center gap-2 border-2 border-black bg-[#fef08a] px-2 py-3 text-center font-mono text-xs font-bold uppercase"
+                  >
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-black" />
+                    {pendingSigner
+                      ? `Esperando firma del ${pendingRole?.toLowerCase()} (${pendingSigner.nombre})…`
+                      : "Firmas completas. Abriendo el sobre…"}
+                  </div>
+                ) : (
+                  <div
+                    aria-live="polite"
+                    className="mt-3 border-2 border-dashed border-black bg-stone-50 px-2 py-2 text-center font-mono text-[10px] font-bold uppercase text-stone-500"
+                  >
+                    {pendingSigner
+                      ? `La comisión está firmando. Falta el ${pendingRole?.toLowerCase()} (${pendingSigner.nombre}).`
+                      : "La comisión ha terminado de firmar. Abriendo el sobre…"}
+                  </div>
+                )}
               </div>
-            ) : inCommission ? (
-              <div
-                aria-live="polite"
-                className="mt-3 rounded-xl bg-amber-50 px-3 py-3 text-center text-sm font-semibold text-amber-800"
-              >
-                <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-                {pendingSigner
-                  ? `Esperando firma del ${pendingRole?.toLowerCase()} (${pendingSigner.nombre})…`
-                  : "Firmas completas. Abriendo el sobre…"}
-              </div>
-            ) : (
-              <div
-                aria-live="polite"
-                className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-center text-sm font-semibold text-slate-500"
-              >
-                {pendingSigner
-                  ? `La comisión está firmando. Falta el ${pendingRole?.toLowerCase()} (${pendingSigner.nombre}).`
-                  : "La comisión ha terminado de firmar. Abriendo el sobre…"}
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </section>
     );
   }
 
   if (room.phase === "NOMINACION") {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-black text-slate-900">Nominación</h2>
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
-            Presidente: {president?.nombre ?? "—"}
-            {countdown !== null && ` · ${countdown}s`}
-          </span>
-        </div>
-        <p className="mt-2 text-sm text-slate-600">
-          El presidente elige a un vocal para la Comisión de Obras. La comisión firmará el contrato
-          después, a solas.
-        </p>
-        {!isPresident && countdown !== null && (
-          <p className="mt-1 text-xs text-slate-400">
-            Si el presidente no nomina a tiempo, el servidor elegirá un vocal al azar.
-          </p>
-        )}
-
-        <VoteResult room={room} />
-
-        {isPresident ? (
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {room.players
-              .filter((player) => player.id !== you.playerId)
-              .map((player) => (
-                <button
-                  key={player.id}
-                  type="button"
-                  onClick={() => socket.nominate(player.id)}
-                  className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-3 text-left transition hover:border-amber-400 hover:bg-amber-50"
-                >
-                  <span className="block text-sm font-bold text-slate-900">{player.nombre}</span>
-                  <span className="block text-xs text-slate-500">Piso {player.piso}</span>
-                </button>
-              ))}
+      <section className={`${BRUTAL.cardLg} overflow-hidden`}>
+        <div className="flex items-center justify-between gap-2 border-b-[3px] border-black bg-[#fef08a] px-3 py-2">
+          <div>
+            <p className={`${BRUTAL.label} text-stone-600`}>ORDEN DEL DÍA</p>
+            <h2 className="text-xl font-black uppercase leading-none tracking-tight">
+              Nominar vocal
+            </h2>
           </div>
-        ) : (
-          <p className="mt-3 rounded-xl bg-slate-50 px-3 py-4 text-center text-sm font-semibold text-slate-500">
-            Esperando la nominación del presidente…
+          <TimerBadge countdown={countdown} />
+        </div>
+        <div className="p-3">
+          <p className="border-2 border-dashed border-black bg-white px-2 py-1.5 font-mono text-[10px] leading-relaxed">
+            El presidente tiene la llave del portal y elige a un vocal para la Comisión de Obras.
+            Después, la comisión firmará el contrato a solas.
           </p>
-        )}
+          <p className="mt-2 font-mono text-[10px] font-bold uppercase">
+            🔑 PRESIDENTE: <strong>{president?.nombre ?? "—"}</strong>
+          </p>
+
+          <VoteResult room={room} />
+
+          {isPresident ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {room.players
+                .filter((player) => player.id !== you.playerId)
+                .map((player) => (
+                  <button
+                    key={player.id}
+                    type="button"
+                    onClick={() => socket.nominate(player.id)}
+                    className={`${BRUTAL.button} flex min-h-[62px] items-center justify-between gap-2 bg-white px-3 py-2 text-left hover:bg-[#fef08a]`}
+                  >
+                    <span>
+                      <span className="block font-mono text-[9px] font-bold uppercase text-stone-500">
+                        PISO {player.piso}
+                      </span>
+                      <span className="block text-sm font-black uppercase">{player.nombre}</span>
+                    </span>
+                    <span className="text-lg" aria-hidden="true">
+                      🪪
+                    </span>
+                  </button>
+                ))}
+            </div>
+          ) : (
+            <p className="mt-3 border-2 border-black bg-stone-100 px-3 py-4 text-center font-mono text-xs font-bold uppercase shadow-[2px_2px_0_0_#000]">
+              ⏳ ESPERANDO LA NOMINACIÓN DEL PRESIDENTE
+              {president ? ` (${president.nombre})` : ""}
+            </p>
+          )}
+          {!isPresident && countdown !== null && (
+            <p className="mt-2 text-center font-mono text-[9px] font-bold uppercase text-stone-400">
+              Si no nomina a tiempo, el servidor elegirá un vocal al azar.
+            </p>
+          )}
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-black text-slate-900">La junta está resolviendo</h2>
-      <p className="mt-2 text-sm text-slate-600">
-        El sobre del contrato está sobre la mesa. En unos segundos se conocerá el resultado.
-      </p>
+    <section className={`${BRUTAL.cardLg} overflow-hidden`}>
+      <div className="border-b-[3px] border-black bg-[#38bdf8] px-3 py-2">
+        <p className={`${BRUTAL.label} text-stone-800`}>ACTA EN CURSO</p>
+        <h2 className="text-xl font-black uppercase leading-none tracking-tight">
+          La junta está resolviendo
+        </h2>
+      </div>
+      <div className="p-3">
+        <p className="border-2 border-dashed border-black bg-[#fef08a] px-2 py-2 font-mono text-xs leading-relaxed">
+          El sobre del contrato está sobre la mesa. En unos segundos se conocerá el resultado.
+        </p>
+      </div>
     </section>
   );
 }

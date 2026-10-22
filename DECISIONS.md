@@ -353,3 +353,11 @@ resolución avanza. Los timers siguen siendo la protección principal.
 cliente selecciona explícitamente columnas públicas y el WS solo envía `private_info` al
 socket del jugador. Los efectos (martillazo, sobre y victoria) se generan con Web Audio API
 en el cliente, sin assets, con preferencia de silencio persistida.
+
+### D-111 · Identidad visual de tablón + neobrutalismo
+La UI pasa de un layout genérico a un tablón de anuncios de comunidad con estética
+neobrutalista: papel `#f4efe6`, bordes negros gruesos, sombras sólidas, post-its amarillos,
+sellos verdes/rojos, carpetas azules y tipografía monoespaciada para actas. Se añaden
+`JuntaHeader`, `PlayerCredential`, `NeighborBoard` y `ContractFolder` para modularizar el
+dashboard. Los botones usan desplazamiento y sombra en `:active`; la credencial es plegable
+en móvil. Probado a 390 px sin overflow horizontal.
